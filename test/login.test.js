@@ -1,18 +1,7 @@
 import supertest from 'supertest';
+import { expect } from 'chai';
 
-import Koa from 'koa';
-import bodyParser from 'koa-bodyparser';
-import * as swagger from 'swagger2';
-import { validate } from 'swagger2-koa';
-
-function makeApp() {
-  const app = new Koa();
-  const document = swagger.loadDocumentSync('./swagger/api.yaml');
-  app.use(bodyParser());
-  app.use(validate(document));
-
-  return app;
-}
+import makeApp from '../src/app';
 
 describe('As a platform user, I need to authenticate with an email address and password', () => {
   let app;
@@ -21,18 +10,35 @@ describe('As a platform user, I need to authenticate with an email address and p
     app = makeApp();
   });
 
-  it('must require email and password', (done) => {
-    supertest(app.callback())
-      .post('/api/auth/login')
+  describe('Login validation', () => {
+    it('must require email and password', async () => {
+      const res = await supertest(app.callback())
+        .post('/api/v1/auth/login')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(400);
+
+      // Error response must comply to ApiResponse
+      expect(res.ok).to.be.false;
+      expect(res.body.code).to.exist;
+      expect(res.body.type).to.exist;
+      expect(res.body.message).to.exist;
+      expect(res.body.errors).to.exist;
+    });
+  });
+
+  it('must authenticate valid user', async () => {
+    const res = await supertest(app.callback())
+      .post('/api/v1/auth/login')
       .set('Content-Type', 'application/json')
       .set('Accept', 'application/json')
-      .send({})
-      .expect(400)
-      .end((err, res) => {
-        if (err) throw err;
-
-        console.log(res);
-        done();
+      .send({
+        email: 'user@mail.com',
+        password: 'hashedpass'
       })
+      .expect(200);
+
+    expect(res.body.accessToken).to.exist;
   });
 });

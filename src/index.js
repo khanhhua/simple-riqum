@@ -4,14 +4,15 @@ import morgan from 'koa-morgan';
 // Swagger documentation
 import * as swagger from 'swagger2';
 import { ui } from 'swagger2-koa';
-
-const app = new Koa();
-const document = swagger.loadDocumentSync('./swagger/api.yaml');
-
-app.use(morgan('combined'));
-app.use(ui(document, "/swagger"));
+import makeApp from './app';
 
 const PORT = process.env.PORT || '8080';
+
+const document = swagger.loadDocumentSync('./swagger/api.yaml');
+
+const app = makeApp();
+app.use(ui(document, "/swagger"));
+app.use(morgan('combined'));
 
 app.listen(PORT, () => {
   const dbg = debug('simple-riqum');
