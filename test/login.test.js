@@ -1,6 +1,8 @@
 import supertest from 'supertest';
 import { expect } from 'chai';
 
+import jwt from 'jsonwebtoken';
+
 import makeApp from '../src/app';
 import { __RewireAPI__ as rewireAPI } from '../src/auth';
 
@@ -21,11 +23,16 @@ describe('As a platform user, I need to authenticate with an email address and p
         .expect(400);
 
       // Error response must comply to ApiResponse
-      ensureErrorResponse(res);
+      expectApiResponse(res);
     });
   });
 
   describe('Login with valid inputs', () => {
+    let secret;
+    before(() => {
+      secret = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
+    });
+
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
     });
@@ -52,6 +59,11 @@ describe('As a platform user, I need to authenticate with an email address and p
         .expect(200);
 
       expect(res.body.accessToken).to.exist;
+
+      const { accessToken } = res.body;
+      const decrypted = jwt.decode(accessToken, secret);
+      expect(decrypted.sub).to.be.equal('user@mail.com');
+      expect(decrypted.iat).to.exist;
     });
 
     it('must reject non-existent user', async () => {
@@ -73,12 +85,12 @@ describe('As a platform user, I need to authenticate with an email address and p
 
       expect(res.body.accessToken).to.be.undefined;
 
-      ensureErrorResponse(res);
+      expectApiResponse(res);
     });
   });
 });
 
-function ensureErrorResponse(res) {
+function expectApiResponse(res) {
   expect(res.ok).to.be.false;
   expect(res.body.code).to.exist;
   expect(res.body.type).to.exist;
