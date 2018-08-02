@@ -7,7 +7,7 @@ import { validate } from 'swagger2-koa';
 
 function makeApp() {
   const app = new Koa();
-  const document = swagger.loadDocumentSync('./swagger/api.yml');
+  const document = swagger.loadDocumentSync('./swagger/api.yaml');
   app.use(bodyParser());
   app.use(validate(document));
 
@@ -22,7 +22,7 @@ describe('As a platform user, I need to authenticate with an email address and p
   });
 
   it('must require email and password', (done) => {
-    supertest(app)
+    supertest(app.callback())
       .post('/api/auth/login')
       .set('Content-Type', 'application/json')
       .set('Accept', 'application/json')

@@ -1,33 +1,30 @@
----
 swagger: '2.0'
 info:
-  description: 'Documentation for interacting with Simple Riqum via RESTful/HTTP'
+  description: Documentation for interacting with Simple Riqum via RESTful/HTTP
   version: 1.0.0
   title: Simple Riqum
-  termsOfService: http://swagger.io/terms/
+  termsOfService: 'http://swagger.io/terms/'
   contact:
     email: giakhanh2487@gmail.com
   license:
     name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-host: localhost:8080
-basePath: "/v1"
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+host: 'localhost:8080'
+basePath: /v1
 tags:
-- name: auth
-  descriptoin: Authorization
-- name: user
-  description: Everything about your Users
-- name: resource
-  description: Everything about your Resources
-- name: quota
-  description: Everything about your Quota
-
+  - name: auth
+    description: Authorization
+  - name: user
+    description: Everything about your Users
+  - name: resource
+    description: Everything about your Resources
+  - name: quota
+    description: Everything about your Quota
 schemes:
-- https
-- http
-
+  - https
+  - http
 paths:
-  "auth/login":
+  /auth/login:
     post:
       tags:
         - auth
@@ -44,20 +41,25 @@ paths:
           description: Login credential
           required: true
           schema:
-            "$ref": "#/definitions/BasicCredential"
-  "auth/logout":
+            $ref: '#/definitions/BasicCredential'
+      responses:
+        default:
+          description: successful operation
+  /auth/logout:
     post:
       tags:
-      - auth
+        - auth
       summary: Logout a user
       description: ''
       operationId: logout
       consumes:
-      - application/json
+        - application/json
       produces:
-      - application/json
-
-  "/user":
+        - application/json
+      responses:
+        default:
+          description: successful operation
+  /user:
     post:
       tags:
         - user
@@ -72,7 +74,7 @@ paths:
           description: Created user object
           required: true
           schema:
-            "$ref": "#/definitions/User"
+            $ref: '#/definitions/User'
       responses:
         default:
           description: successful operation
@@ -84,14 +86,20 @@ paths:
       operationId: findUsers
       produces:
         - application/json
-
-  "/user/{userID}":
+      responses:
+        '200':
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+          description: successful operation
+  '/user/{userID}':
     get:
       tags:
         - user
       summary: Get one user identified by userID
       description: ''
-      operation: getUser
+      operationId: getUser
       produces:
         - application/json
       parameters:
@@ -104,7 +112,7 @@ paths:
         '200':
           description: successful operation
           schema:
-            "$ref": "#/definitions/User"
+            $ref: '#/definitions/User'
         '400':
           description: Invalid tag value
     put:
@@ -112,7 +120,7 @@ paths:
         - user
       summary: Update one user identified by userID
       description: ''
-      operation: updateUser
+      operationId: updateUser
       produces:
         - application/json
       parameters:
@@ -126,19 +134,25 @@ paths:
           description: Created user object
           required: true
           schema:
-            "$ref": "#/definitions/User"
+            $ref: '#/definitions/User'
       responses:
         '200':
           description: successful operation
           schema:
-            "$ref": "#/definitions/User"
+            $ref: '#/definitions/User'
         '400':
           description: Invalid input values
-
-  "/resource":
+  /resource:
     post:
       tags:
         - resource
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Resource'
+        '400':
+          description: Invalid input values
     get:
       tags:
         - resource
@@ -148,45 +162,65 @@ paths:
           schema:
             type: array
             items:
-              "$ref": "#/definitions/Resource"
+              $ref: '#/definitions/Resource'
         '400':
           description: Invalid input values
-
-  "/resource/{resourceId}":
+  '/resource/{resourceId}':
     get:
       tags:
         - resource
+      parameters:
+        - in: path
+          name: resourceId
+          type: string
+          required: true
       responses:
         '200':
           description: successful operation
           schema:
-            "$ref": "#/definitions/Resource"
+            $ref: '#/definitions/Resource'
         '400':
           description: Invalid input resourceId
-
     put:
       tags:
         - resource
-
+      parameters:
+        - in: path
+          name: resourceId
+          type: string
+          required: true
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Resource'
+        '400':
+          description: Invalid input resourceId
     delete:
       tags:
         - resource
-      '204':
-        description: empty content
-      '400':
-         description: Invalid resourceId
-
-
+      parameters:
+        - in: path
+          name: resourceId
+          type: string
+          required: true
+      responses:
+        '204':
+          description: empty content
+        '400':
+          description: Invalid resourceId
+      
 securityDefinitions:
   OAuth2:
     type: oauth2
     flow: accessCode
-    authorizationUrl: https://riqum.khanhhua.com/oauth/authorize
-    tokenUrl: https://riqum.khanhhua.com/oauth/token
+    authorizationUrl: 'https://riqum.khanhhua.com/oauth/authorize'
+    tokenUrl: 'https://riqum.khanhhua.com/oauth/token'
     scopes:
       user: Grants read/write to his own resources
-      admin: Grants read and write access to administrative information (user, grant to users)
-
+      admin: >-
+        Grants read and write access to administrative information (user, grant
+        to users)
 definitions:
   BasicCredential:
     type: object
@@ -228,9 +262,9 @@ definitions:
         type: object
         properties:
           limit:
-            type: int64
+            type: integer
           usage:
-            type: int64
+            type: integer
           unit:
             type: string
     xml:
@@ -249,12 +283,11 @@ definitions:
         type: object
         properties:
           limit:
-            type: int64
+            type: integer
           usage:
-            type: int64
+            type: integer
           unit:
             type: string
-
   Category:
     type: object
     properties:
@@ -265,7 +298,6 @@ definitions:
         type: string
     xml:
       name: Category
-
   ApiResponse:
     type: object
     properties:
@@ -278,4 +310,4 @@ definitions:
         type: string
 externalDocs:
   description: Find out more about Swagger
-  url: http://swagger.io
+  url: 'http://swagger.io'

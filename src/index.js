@@ -6,7 +6,7 @@ import * as swagger from 'swagger2';
 import { ui } from 'swagger2-koa';
 
 const app = new Koa();
-const document = swagger.loadDocumentSync('./swagger/api.yml');
+const document = swagger.loadDocumentSync('./swagger/api.yaml');
 
 app.use(morgan('combined'));
 app.use(ui(document, "/swagger"));
