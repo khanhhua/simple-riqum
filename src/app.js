@@ -29,16 +29,20 @@ export default function makeApp() {
           errors: ctx.body.errors.map(({error}) => error)
         };
       }
-      debugger
     } catch (err) {
       ctx.status = err.status || 500;
-      ctx.body = err.message;
+      ctx.body = {
+        code: err.status || 500,
+        type: 'error',
+        message: err.message || 'Bad Request'
+      };
 
       ctx.app.emit('error', err, ctx);
     }
   });
 
   app.use(validate(document));
+
   auth(app, '/api/v1/auth');
 
   return app;

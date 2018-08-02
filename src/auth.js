@@ -1,5 +1,7 @@
 import Router from 'koa-router';
 
+import * as db from './db';
+
 export default function (app, baseUrl) {
   const router = new Router({
     prefix: baseUrl
@@ -19,9 +21,18 @@ export default function (app, baseUrl) {
 }
 
 async function login (ctx) {
+  const { email, password } = ctx.request.body;
 
+  try {
+    const user = await db.findUserByCredential(email, password);
 
-  ctx.body = {
-    accessToken: 'justaplaintoken',
-  };
+    if (user) {
+      ctx.body = {
+        accessToken: 'justaplaintoken',
+      };
+    }
+  } catch (e) {
+    e.status = 403;
+    ctx.throw(e);
+  }
 }

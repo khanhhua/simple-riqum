@@ -8,6 +8,7 @@
   ],
   "ignore": "node_modules/(?!(koa-bodyparser)\/).*",
   "plugins": [
+    "rewire",
     "transform-object-rest-spread",
     "transform-async-to-generator",
     "inline-dotenv"
