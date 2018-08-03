@@ -6,9 +6,11 @@ import jwt from 'jsonwebtoken';
 import * as db from './db';
 
 let privkey;
+let passphrase;
 
 export default function (app, baseUrl) {
   privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
+  passphrase = process.env.JWT_PASS;
 
   const router = new Router({
     prefix: baseUrl
@@ -37,7 +39,12 @@ async function login (ctx) {
       const accessToken = jwt.sign({
         exp: Math.floor(Date.now() / 1000) + (60 * 60),
         sub: user.username
-      }, privkey);
+      }, {
+        key: privkey,
+        passphrase: passphrase
+      }, {
+        algorithm: 'RS512'
+      });
 
       ctx.body = {
         accessToken,
