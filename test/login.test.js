@@ -1,6 +1,7 @@
 import supertest from 'supertest';
 import { expect } from 'chai';
 
+import fs from 'fs';
 import jwt from 'jsonwebtoken';
 
 import makeApp from '../src/app';
@@ -28,9 +29,9 @@ describe('As a platform user, I need to authenticate with an email address and p
   });
 
   describe('Login with valid inputs', () => {
-    let secret;
+    let privkey;
     before(() => {
-      secret = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
+      privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
     });
 
     afterEach(() => {
@@ -61,8 +62,9 @@ describe('As a platform user, I need to authenticate with an email address and p
       expect(res.body.accessToken).to.exist;
 
       const { accessToken } = res.body;
-      const decrypted = jwt.decode(accessToken, secret);
-      expect(decrypted.sub).to.be.equal('user@mail.com');
+      const decrypted = jwt.decode(accessToken, privkey);
+      expect(decrypted).to.exist;
+      expect(decrypted.sub).to.be.equal('MockUSER');
       expect(decrypted.iat).to.exist;
     });
 
