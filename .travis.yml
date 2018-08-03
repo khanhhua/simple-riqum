@@ -1,0 +1,18 @@
+language: node_js
+node_js:
+  - "8"
+
+cache:
+  directories:
+    - "node_modules"
+
+before_script:
+  - npm install
+  - mkdir -p data; cd data
+  - openssl genrsa -out test_private_key.pem 2048; openssl rsa -in test_private_key.pem -pubout -out test_public_key.pem
+  - export JWT_PRIVATE_KEY=`pwd`/test_private_key.pem
+  - export JWT_PRIVATE_KEY=`pwd`/test_public_key.pem
+  - cd
+
+script:
+  - npm test
