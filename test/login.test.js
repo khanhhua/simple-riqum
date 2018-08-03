@@ -29,9 +29,9 @@ describe('As a platform user, I need to authenticate with an email address and p
   });
 
   describe('Login with valid inputs', () => {
-    let privkey;
+    let pubkey;
     before(() => {
-      privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
+      pubkey = fs.readFileSync(process.env.JWT_PUBLIC_KEY);
     });
 
     afterEach(() => {
@@ -62,7 +62,7 @@ describe('As a platform user, I need to authenticate with an email address and p
       expect(res.body.accessToken).to.exist;
 
       const { accessToken } = res.body;
-      const decrypted = jwt.decode(accessToken, privkey);
+      const decrypted = jwt.verify(accessToken, pubkey, { algorithms: ['RS512'] });
       expect(decrypted).to.exist;
       expect(decrypted.sub).to.be.equal('MockUSER');
       expect(decrypted.iat).to.exist;
