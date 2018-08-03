@@ -1,6 +1,6 @@
 {
   "name": "simple-riqum",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple Resource, Identity and Quota Management",
   "main": "index.js",
   "scripts": {
@@ -25,6 +25,7 @@
   "homepage": "https://github.com/khanhhua/simple-riqum#readme",
   "dependencies": {
     "debug": "^3.1.0",
+    "jsonwebtoken": "^8.3.0",
     "koa": "^2.5.2",
     "koa-body": "^4.0.4",
     "koa-convert": "^1.2.0",
@@ -38,8 +39,12 @@
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-plugin-inline-dotenv": "^1.1.2",
+    "babel-plugin-rewire": "^1.1.0",
     "babel-plugin-transform-async-to-generator": "^6.24.1",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
-    "babel-preset-env": "^1.7.0"
+    "babel-preset-env": "^1.7.0",
+    "chai": "^4.1.2",
+    "mocha": "^5.2.0",
+    "supertest": "^3.1.0"
   }
 }
