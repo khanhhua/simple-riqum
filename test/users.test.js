@@ -236,24 +236,76 @@ describe('As a platform administrator, I should be able to create, list and dele
   });
 
   describe('Get user', () => {
-    before(async () => {
-      // TODO Insert 2 users
-      // 1 user doesn't have resources
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
     });
 
     it('must respond with 404 for an unknown user', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findById (id) {
+          expect(id).to.be.equal(99999);
 
+          return Promise.reject(new Error('Not found'));
+        }
+      });
+
+      const accessToken = genAccessToken({ username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .get('/api/v1/users/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(404);
     });
 
-    it('must get one non-admin user, the owner of the token', async () => {
+    xit('must get one user, the owner of the token', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findByUsername (username) {
+          expect(username).to.be.equal('mockUser');
 
+          return Promise.resolve({
+            username: 'mocka',
+            email: 'mocka@mail.com',
+            roles: ['user']
+          });
+        }
+      });
+
+      const accessToken = genAccessToken({ username: 'mockUser', roles: ['user'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .get('/api/v1/users/me')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
+    });
+
+    it('must get one user other than the owner of access token in case of admin access', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findById (id) {
+          expect(id).to.be.equal(1);
+
+          return Promise.resolve({
+            username: 'mocka',
+            email: 'mocka@mail.com',
+            roles: ['user']
+          });
+        }
+      });
+
+      const accessToken = genAccessToken({ username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .get('/api/v1/users/1')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
     });
 
     it('must get one non-admin user and his resources, the owner of the token', async () => {
-
-    });
-
-    it('must get one user other the owner of access token in case of admin access', async () => {
 
     });
 
