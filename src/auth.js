@@ -1,9 +1,13 @@
+import debug from 'debug';
+
 import fs from 'fs';
 
 import Router from 'koa-router';
 import jwt from 'jsonwebtoken';
 
 import * as db from './db';
+
+const dbg = debug('simple-riqum:auth');
 
 let privkey;
 let passphrase;
@@ -31,6 +35,7 @@ export default function (app, baseUrl) {
 
 async function login (ctx) {
   const { email, password } = ctx.request.body;
+  dbg(`Logging in using email ${email}...`);
 
   try {
     const user = await db.findUserByCredential(email, password);
