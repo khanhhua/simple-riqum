@@ -1,0 +1,13 @@
+version: '3.6'
+services:
+  database:
+    image: postgres:9.6.9
+    hostname: postgres
+    container_name: simple-riqum-database
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=adminadmin
+      - POSTGRES_DB=riqum
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
