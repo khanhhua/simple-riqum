@@ -37,3 +37,23 @@ export async function createUser({ username, email, password, roles=['user'] }) 
 
   return user.dataValues;
 }
+
+/**
+ *
+ * @param criteria
+ * @param limit
+ * @param offset
+ * @returns {Promise<*>}
+ */
+export async function findUsers(criteria = {}, { limit = 10, offset = 0 }) {
+  dbg('Retrieving users by the given criteria', criteria);
+
+  const query = await User.findAll({
+    offset,
+    limit,
+    attributes: { exclude: ['password'] },
+    where: criteria
+  });
+
+  return query.map(it => it.dataValues);
+}

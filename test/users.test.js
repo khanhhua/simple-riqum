@@ -143,20 +143,95 @@ describe('As a platform administrator, I should be able to create, list and dele
   });
 
   describe('List users', () => {
-    before(async () => {
-      // TODO Insert 20 users
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
     });
 
     it('must list zero users', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findUsers (criteria, options) {
+          expect(criteria).to.be.deep.equal({});
+          expect(options).to.be.deep.equal({
+            limit: 10,
+            offset: 0
+          });
 
+          return Promise.resolve([]);
+        }
+      });
+
+      const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/users')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
+
+      expect(res.body).to.have.length(0);
     });
 
-    it('must list a paginated list of 10 users on page 1', async () => {
+    it('must list a paginated list of 10 users on page 1 by default', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findUsers (criteria, options) {
+          expect(criteria).to.be.deep.equal({});
+          expect(options).to.be.deep.equal({
+            limit: 10,
+            offset: 0
+          });
 
+          return Promise.resolve(new Array(10).fill({
+            username: 'mocka',
+            email: 'mocka@mail.com',
+            roles: ['user']
+          }));
+        }
+      });
+
+      const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/users')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
+
+      expect(res.body).to.have.length(10);
     });
 
     it('must list a paginated list of 10 users on page 2', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findUsers (criteria, options) {
+          expect(criteria).to.be.deep.equal({});
+          expect(options).to.be.deep.equal({
+            limit: 10,
+            offset: 10
+          });
 
+          return Promise.resolve(new Array(10).fill({
+            username: 'mocka',
+            email: 'mocka@mail.com',
+            roles: ['user']
+          }));
+        }
+      });
+
+      const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/users')
+        .query({
+          page: 2,
+          size: 10
+        })
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
+
+      expect(res.body).to.have.length(10);
     });
   });
 
