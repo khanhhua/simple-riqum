@@ -73,6 +73,8 @@ paths:
       summary: Create user
       description: This can only be done by the logged in user.
       operationId: createUser
+      security:
+        - BasicAuth: []
       produces:
         - application/json
       parameters:
@@ -227,6 +229,8 @@ paths:
           description: Invalid resourceId
       
 securityDefinitions:
+  BasicAuth:
+    type: basic
   OAuth2:
     type: oauth2
     flow: accessCode

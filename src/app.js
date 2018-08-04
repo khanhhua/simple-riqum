@@ -42,7 +42,7 @@ export default function makeApp() {
     }
   });
 
-  app.use(identify('/api'));
+  app.use(identify('/api', { ignored: ['/api/v1/auth/login', '/api/v1/auth/logout'] }));
   app.use(validate(document));
   // Mounting modules as we go
   auth(app, '/api/v1/auth');

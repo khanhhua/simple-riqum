@@ -41,6 +41,9 @@ describe('As a platform user, I need to authenticate with an email address and p
     it('must authenticate valid user', async () => {
       rewireAPI.__Rewire__('db', {
         findUserByCredential: async function (email, password) {
+          expect(email).to.be.equal('user@mail.com');
+          expect(password).to.be.equal('hashedpass');
+
           return Promise.resolve({
             email,
             username: 'MockUSER',

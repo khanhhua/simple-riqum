@@ -40,14 +40,12 @@ function getUser(ctx, userId) {
   };
 }
 
-function createUser(ctx) {
-  const { body } = ctx.request;
+async function createUser(ctx) {
+  const { body: { username, email, password, roles=['user'] } } = ctx.request;
 
-  ctx.body = {
-    id: 1,
-    username: body.username,
-    email: body.email
-  };
+  const result = await db.createUser({ username, email, password, roles });
+
+  ctx.body = result;
   ctx.status = 201;
 }
 

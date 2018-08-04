@@ -34,11 +34,11 @@ export default function (app, baseUrl) {
   app.use(router.allowedMethods());
 }
 
-export function identify(baseUrl) {
+export function identify(baseUrl, { ignored=[] }) {
   let pubkey = fs.readFileSync(process.env.JWT_PUBLIC_KEY);
 
   return async function (ctx, next) {
-    if (ctx.request.path.indexOf(baseUrl) !== 0) {
+    if (ctx.request.path.indexOf(baseUrl) !== 0 || ignored.includes(ctx.request.path)) {
       await next();
       return;
     }
@@ -50,33 +50,52 @@ export function identify(baseUrl) {
       return;
     }
     const [, accessToken] = authorization.split('Bearer ');
-    if (!accessToken) {
+    const [, basicToken] = authorization.split('Basic ');
+
+    if (!accessToken && !basicToken) {
       dbg('Missing authorization header');
       ctx.throw('Forbidden', 403);
       return;
     }
-    try {
-      const decrypted = jwt.verify(accessToken, pubkey, { algorithms: ['RS512'] });
 
-      if (!decrypted) {
-        dbg('Invalid authorization access token');
-        ctx.throw('Forbidden', 403);
-        return;
-      } else if (decrypted.exp < Date.now()/1000) {
-        dbg('Access token has expired');
-        ctx.throw('Forbidden', 403);
+    if (accessToken) {
+      try {
+        const decrypted = jwt.verify(accessToken, pubkey, { algorithms: ['RS512'] });
 
+        if (!decrypted) {
+          dbg('Invalid authorization access token');
+          ctx.throw('Forbidden', 403);
+          return;
+        } else if (decrypted.exp < Date.now()/1000) {
+          dbg('Access token has expired');
+          ctx.throw('Forbidden', 403);
+
+          return;
+        } else {
+          ctx.user = {
+            username: decrypted.sub,
+            roles: decrypted.roles
+          };
+        }
+
+        await next();
         return;
-      } else {
-        ctx.user = {
-          username: decrypted.sub,
-          roles: decrypted.roles
-        };
+      } catch (e) {
+        ctx.throw(e);
       }
+    }
+
+    if (process.env.NODE_ENV === 'development' && basicToken) {
+      const [email, password] = Buffer.from(basicToken, 'base64').toString().split(':');
+      dbg(`Email: ${email} password: ${password}`);
+
+      ctx.user = {
+        username: email,
+        roles: ['admin']
+      };
 
       await next();
-    } catch (e) {
-      ctx.throw(e);
+      return;
     }
   };
 }

@@ -5,22 +5,23 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 
 import makeApp from '../src/app';
-import { __RewireAPI__ as rewireAPI } from '../src/auth';
+import { __RewireAPI__ as rewireAPI } from '../src/users';
+
+let privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
+let passphrase = process.env.JWT_PASS;
 
 describe('As a platform administrator, I should be able to create, list and delete users and their resources', () => {
   let app;
-  let privkey;
-  let passphrase = process.env.JWT_PASS;
-
-  before(() => {
-    privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
-  });
 
   beforeEach(() => {
     app = makeApp();
   });
 
   describe('Authorization and authentication', () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
+
     it('must require Authorization header', async () => {
       const res = await supertest(app.callback())
         .post('/api/v1/users')
@@ -52,6 +53,15 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
 
     it('must allow user with "admin" roles to create resources', async () => {
+      rewireAPI.__Rewire__('db', {
+        async createUser () {
+          return Promise.resolve({
+            username: 'anewguy',
+            email: 'newguy@mail.com'
+          })
+        }
+      });
+
       const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
 
       const res = await supertest(app.callback())
@@ -72,7 +82,11 @@ describe('As a platform administrator, I should be able to create, list and dele
   });
 
   describe('Create users', () => {
-    const accessToken = '';
+    const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
 
     it('must invalidate wrong/missing data', async () => {
       const res = await supertest(app.callback())
@@ -88,6 +102,15 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
 
     it('must persist valid user', async () => {
+      rewireAPI.__Rewire__('db', {
+        async createUser ({ username, email, roles }) {
+          expect(username).to.be.equal('MockUSER');
+          expect(email).to.be.equal('mock@mail.com');
+          expect(roles).to.be.deep.equal(['user']);
+
+          return Promise.resolve({ username, email, roles });
+        }
+      });
       const res = await supertest(app.callback())
         .post('/api/v1/users')
         .set('Content-Type', 'application/json')
@@ -102,6 +125,20 @@ describe('As a platform administrator, I should be able to create, list and dele
       expect(res.body.username).to.be.equal('MockUSER');
       expect(res.body.email).to.be.equal('mock@mail.com');
       expect(res.body.roles).to.be.deep.equal(['user']);
+    });
+  });
+
+  describe('Update user', () => {
+    it('must reject non-existing user', async () => {
+
+    });
+
+    it('must update', async () => {
+
+    });
+
+    it('must list a paginated list of 10 users on page 2', async () => {
+
     });
   });
 

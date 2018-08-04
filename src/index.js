@@ -20,6 +20,7 @@ initDb().then(() => {
   dbg('Initialization completed');
 
   app.listen(PORT, () => {
+    dbg(`Node environment: ${process.env.NODE_ENV}`);
     dbg(`Listening on port ${PORT}...`);
   });
 });
