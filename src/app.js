@@ -5,7 +5,8 @@ import bodyParser from 'koa-bodyparser';
 import * as swagger from 'swagger2';
 import { validate } from 'swagger2-koa';
 
-import auth from './auth';
+import auth, { identify, protect } from './auth';
+import users from './users';
 
 export default function makeApp() {
   const dbg = debug('simple-riqum:app');
@@ -18,7 +19,7 @@ export default function makeApp() {
     try {
       await next();
 
-      if (ctx.body.code === 'SWAGGER_REQUEST_VALIDATION_FAILED') {
+      if (ctx.body && ctx.body.code === 'SWAGGER_REQUEST_VALIDATION_FAILED') {
         const devError = ctx.body;
         dbg(devError);
 
@@ -41,9 +42,11 @@ export default function makeApp() {
     }
   });
 
+  app.use(identify('/api', { ignored: ['/api/v1/auth/login', '/api/v1/auth/logout'] }));
   app.use(validate(document));
-
+  // Mounting modules as we go
   auth(app, '/api/v1/auth');
+  users(app, '/api/v1');
 
   return app;
 }

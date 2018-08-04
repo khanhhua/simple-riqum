@@ -66,13 +66,15 @@ paths:
       responses:
         default:
           description: successful operation
-  /user:
+  /users:
     post:
       tags:
         - user
       summary: Create user
       description: This can only be done by the logged in user.
       operationId: createUser
+      security:
+        - BasicAuth: []
       produces:
         - application/json
       parameters:
@@ -83,8 +85,17 @@ paths:
           schema:
             $ref: '#/definitions/User'
       responses:
-        default:
-          description: successful operation
+        '201':
+          description: User has been created
+          schema:
+            $ref: '#/definitions/User'
+        '400':
+          description: invalid post request
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '403':
+          schema:
+            $ref: '#/definitions/ApiResponse'
     get:
       tags:
         - user
@@ -100,7 +111,7 @@ paths:
             items:
               $ref: '#/definitions/User'
           description: successful operation
-  '/user/{userID}':
+  '/users/{userID}':
     get:
       tags:
         - user
@@ -149,7 +160,7 @@ paths:
             $ref: '#/definitions/User'
         '400':
           description: Invalid input values
-  /resource:
+  /resources:
     post:
       tags:
         - resource
@@ -172,7 +183,7 @@ paths:
               $ref: '#/definitions/Resource'
         '400':
           description: Invalid input values
-  '/resource/{resourceId}':
+  '/resources/{resourceId}':
     get:
       tags:
         - resource
@@ -218,6 +229,8 @@ paths:
           description: Invalid resourceId
       
 securityDefinitions:
+  BasicAuth:
+    type: basic
   OAuth2:
     type: oauth2
     flow: accessCode
@@ -242,7 +255,6 @@ definitions:
   User:
     type: object
     required:
-      - id
       - username
       - email
     properties:
