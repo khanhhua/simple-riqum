@@ -21,8 +21,8 @@ tags:
   - name: quota
     description: Everything about your Quota
 schemes:
-  - https
   - http
+  - https
 paths:
   /auth/login:
     post:
@@ -99,18 +99,40 @@ paths:
     get:
       tags:
         - user
+      security:
+        - BasicAuth: []
       summary: Get one or more users
       description: ''
       operationId: findUsers
       produces:
         - application/json
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          description: Page number to retrieve
+        - name: size
+          in: query
+          type: integer
+          description: Elements per page to retrieve
       responses:
         '200':
+          description: A list of users
           schema:
             type: array
             items:
               $ref: '#/definitions/User'
-          description: successful operation
+
+        '403':
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ApiResponse'
+
+        '500':
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ApiResponse'
+
   '/users/{userID}':
     get:
       tags:
@@ -241,6 +263,7 @@ securityDefinitions:
       admin: >-
         Grants read and write access to administrative information (user, grant
         to users)
+
 definitions:
   BasicCredential:
     type: object

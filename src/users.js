@@ -28,10 +28,17 @@ export default function (app, baseUrl) {
   app.use(router.allowedMethods());
 }
 
-function findUsers(ctx) {
-  ctx.body = {
-    ok: true
+async function findUsers(ctx) {
+  const criteria = ctx.request.query.q || {};
+  const { page = '1', size = '10' } = ctx.request.query;
+  const options = {
+    limit: parseInt(size, 10),
+    offset: (parseInt(page, 10) - 1) * size
   };
+
+  const result = await db.findUsers(criteria, options);
+  debugger
+  ctx.body = result;
 }
 
 function getUser(ctx, userId) {
