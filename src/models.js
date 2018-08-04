@@ -21,6 +21,11 @@ export const User = sequelize.define('user', {
     // Create a unique index on email
     {
       unique: true,
+      fields: ['username']
+    },
+    // Create a unique index on email
+    {
+      unique: true,
       fields: ['email']
     }
   ]

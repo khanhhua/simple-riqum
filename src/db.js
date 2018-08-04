@@ -9,6 +9,35 @@ export async function initDb() {
   return await modelsInitDb();
 }
 
+export async function findById(id) {
+  dbg('Finding user by user id...');
+  const user = await User.findOne({
+    attributes: { exclude: ['password'] },
+    where: { id }
+  });
+
+  if (!user) {
+    throw new Error('Not found');
+  }
+
+  dbg('User value:', user.dataValues);
+  return user.dataValues;
+}
+
+export async function findByUsername(username) {
+  dbg('Finding user by username...');
+  const user = await User.findOne({
+    attributes: { exclude: ['password'] },
+    where: { username }
+  });
+  if (!user) {
+    throw new Error('Not found');
+  }
+
+  dbg('User value:', user.dataValues);
+  return user.dataValues;
+}
+
 export async function findUserByCredential(email, password) {
   dbg('Finding user by credential...');
   // TODO: Hash the pass

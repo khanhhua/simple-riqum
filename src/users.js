@@ -16,10 +16,14 @@ export default function (app, baseUrl) {
   const adminOnlyRules = {
     allowed: ['admin']
   };
+  const ownerOnlyRules = {
+    allowed: ['admin', 'owner']
+  };
 
   router.get('/users', protect(adminOnlyRules), findUsers);
   router.post('/users', protect(adminOnlyRules), createUser);
 
+  router.get('/users/me', protect(ownerOnlyRules), getMyUser);
   router.get('/users/:id', protect(adminOnlyRules), getUser);
   router.put('/users/:id', protect(adminOnlyRules), updateUser);
   router.delete('/users/:id', protect(adminOnlyRules), deleteUser);
@@ -37,14 +41,31 @@ async function findUsers(ctx) {
   };
 
   const result = await db.findUsers(criteria, options);
-  debugger
   ctx.body = result;
 }
 
-function getUser(ctx, userId) {
-  ctx.body = {
-    ok: true
-  };
+async function getMyUser(ctx) {
+  const { username } = ctx.user;
+
+  try {
+    const result = await db.findByUsername(username);
+    ctx.body = result;
+  } catch (e) {
+    e.status = 404;
+    ctx.throw(e);
+  }
+}
+
+async function getUser(ctx) {
+  const { id } = ctx.params;
+
+  try {
+    const result = await db.findById(parseInt(id, 10));
+    ctx.body = result;
+  } catch (e) {
+    e.status = 404;
+    ctx.throw(e);
+  }
 }
 
 async function createUser(ctx) {
