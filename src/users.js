@@ -17,12 +17,12 @@ export default function (app, baseUrl) {
     allowed: ['admin']
   };
 
-  router.get('/users', protect(), findUsers);
+  router.get('/users', protect(adminOnlyRules), findUsers);
   router.post('/users', protect(adminOnlyRules), createUser);
 
-  router.get('/users/:id', getUser);
-  router.put('/users/:id', updateUser);
-  router.delete('/users/:id', deleteUser);
+  router.get('/users/:id', protect(adminOnlyRules), getUser);
+  router.put('/users/:id', protect(adminOnlyRules), updateUser);
+  router.delete('/users/:id', protect(adminOnlyRules), deleteUser);
 
   app.use(router.routes());
   app.use(router.allowedMethods());

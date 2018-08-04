@@ -91,11 +91,17 @@ export function identify(baseUrl) {
  *    disallowed: '*'|roles::{[string]}|callback::{function}
  *  }
  *
+ * @example
+ * rules.allowed = '*'
+ * rules.allowed = ['admin']
+ * rules.allowed = ['admin', 'user']
+ * rules.allowed = ['admin', 'owner']
+ *
  * Rule callback function :: fn(ctx):Promise<boolean>
  */
 export function protect(rules = {
   allowed: '*',
-  disallowed: ''
+  // disallowed: '' TODO Nice to have. But not in the scope of this exercise
 }) {
   // Normalize rules
   rules = Object.assign({}, {
@@ -109,12 +115,14 @@ export function protect(rules = {
       ctx.throw('Forbidden', 403);
     }
 
+    // TODO Implement disallowed option
     // Let's do the restrictive mode: "disallowed" takes precedence over "allowed"
-    if (rules.disallowed) {
-      ctx.throw('Forbidden', 403, {
-        reason: 'Resource not allowed'
-      });
-    }
+    // if (rules.disallowed) {
+    //   ctx.throw('Forbidden', 403, {
+    //     reason: 'Resource not allowed'
+    //   });
+    // }
+
     if (rules.allowed === '*') {
       await next();
       return;
