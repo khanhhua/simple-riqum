@@ -81,17 +81,16 @@ function updateResource(ctx, userId) {
 }
 
 async function deleteResource(ctx) {
-  const { id: userID } = ctx.user;
+  const { user: { id: userId, roles } } = ctx;
   const { id } = ctx.params;
 
-  if (userID === parseInt(id, 10)) {
-    const e = new Error();
-    e.status = 403;
-    ctx.throw(e);
-  }
-
   try {
-    await db.removeResourceById(parseInt(id, 10));
+    if (roles.includes('admin')) {
+      await db.removeResourceById(id);
+    } else {
+      await db.removeResourceById(id, { ownerId: userId });
+    }
+
     ctx.body = null;
     ctx.status = 204;
   } catch (e) {

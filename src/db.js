@@ -89,17 +89,15 @@ export async function findUsers(criteria = {}, { limit = 10, offset = 0 }) {
 
 export async function removeUserById(id) {
   dbg('Removing user by user id...');
-  const user = await User.removeById({
-    attributes: { exclude: ['password'] },
-    where: { id }
-  });
+  const user = await User.findById(id);
 
   if (!user) {
     throw new Error('Not found');
   }
 
-  dbg('User value:', user.dataValues);
-  return user.dataValues;
+  await user.destroy();
+
+  return true;
 }
 
 export async function findResourcesByOwnerId(ownerId, { limit = 10, offset = 0 } = {}) {
@@ -153,6 +151,22 @@ export async function createResource({ name, ownerId }) {
   const resource = await Resource.create({ name, ownerId });
 
   return resource.dataValues;
+}
+
+export async function removeResourceById(resourceId, { ownerId = undefined } = {}) {
+  dbg(`Removing one resource by id: ${resourceId}`);
+
+  const resource = await Resource.findOne({
+    where: ownerId ? { ownerId, id: resourceId }: { id: resourceId }
+  });
+
+  if (!resource) {
+    throw new Error('Not found');
+  }
+
+  await resource.destroy();
+
+  return true;
 }
 
 function isolify(item) {

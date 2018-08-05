@@ -320,6 +320,8 @@ paths:
     put:
       tags:
         - resource
+      security:
+        - BasicAuth: []
       parameters:
         - in: path
           name: resourceId
@@ -335,6 +337,8 @@ paths:
     delete:
       tags:
         - resource
+      security:
+        - BasicAuth: []
       parameters:
         - in: path
           name: resourceId
