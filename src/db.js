@@ -9,7 +9,7 @@ export async function initDb() {
   return await modelsInitDb();
 }
 
-export async function findById(id) {
+export async function findUserById(id) {
   dbg('Finding user by user id...');
   const user = await User.findOne({
     attributes: { exclude: ['password'] },
@@ -24,7 +24,7 @@ export async function findById(id) {
   return user.dataValues;
 }
 
-export async function findByUsername(username) {
+export async function findUserByUsername(username) {
   dbg('Finding user by username...');
   const user = await User.findOne({
     attributes: { exclude: ['password'] },
@@ -85,4 +85,19 @@ export async function findUsers(criteria = {}, { limit = 10, offset = 0 }) {
   });
 
   return query.map(it => it.dataValues);
+}
+
+export async function removeUserById(id) {
+  dbg('Removing user by user id...');
+  const user = await User.removeById({
+    attributes: { exclude: ['password'] },
+    where: { id }
+  });
+
+  if (!user) {
+    throw new Error('Not found');
+  }
+
+  dbg('User value:', user.dataValues);
+  return user.dataValues;
 }

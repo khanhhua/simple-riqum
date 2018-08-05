@@ -212,6 +212,29 @@ paths:
             $ref: '#/definitions/User'
         '400':
           description: Invalid input values
+    delete:
+      tags:
+      - user
+      security:
+      - BasicAuth: []
+      summary: Remove one user identified by userID
+      description: ''
+      operationId: deleteUser
+      parameters:
+      - name: userID
+        in: path
+        required: true
+        type: integer
+        format: int64
+      responses:
+        '204':
+          description: User has been successfully removed
+        '400':
+          description: Invalid Request
+        '404':
+          description: User not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
   /resources:
     post:
       tags:

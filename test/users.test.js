@@ -82,7 +82,10 @@ describe('As a platform administrator, I should be able to create, list and dele
   });
 
   describe('Create users', () => {
-    const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+    let accessToken;
+    before(() => {
+      accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+    });
 
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
@@ -160,7 +163,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
       const res = await supertest(app.callback())
         .get('/api/v1/users')
         .set('Content-Type', 'application/json')
@@ -189,7 +192,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
       const res = await supertest(app.callback())
         .get('/api/v1/users')
         .set('Content-Type', 'application/json')
@@ -218,7 +221,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id:1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
       const res = await supertest(app.callback())
         .get('/api/v1/users')
         .query({
@@ -249,7 +252,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
       await supertest(app.callback())
         .get('/api/v1/users/99999')
         .set('Content-Type', 'application/json')
@@ -261,7 +264,7 @@ describe('As a platform administrator, I should be able to create, list and dele
 
     xit('must get one user, the owner of the token', async () => {
       rewireAPI.__Rewire__('db', {
-        async findByUsername (username) {
+        async findUserByUsername (username) {
           expect(username).to.be.equal('mockUser');
 
           return Promise.resolve({
@@ -272,7 +275,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ username: 'mockUser', roles: ['user'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id: 20, username: 'mockUser', roles: ['user'] }, privkey, passphrase);
       await supertest(app.callback())
         .get('/api/v1/users/me')
         .set('Content-Type', 'application/json')
@@ -284,7 +287,7 @@ describe('As a platform administrator, I should be able to create, list and dele
 
     it('must get one user other than the owner of access token in case of admin access', async () => {
       rewireAPI.__Rewire__('db', {
-        async findById (id) {
+        async findUserById (id) {
           expect(id).to.be.equal(1);
 
           return Promise.resolve({
@@ -295,7 +298,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
       await supertest(app.callback())
         .get('/api/v1/users/1')
         .set('Content-Type', 'application/json')
@@ -316,17 +319,57 @@ describe('As a platform administrator, I should be able to create, list and dele
 
 
   describe('Delete users', () => {
-    before(async () => {
-      // TODO Insert 2 users
-      // 1 user doesn't have resources
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
     });
 
     it('must respond with 404 for an unknown user', async () => {
+      rewireAPI.__Rewire__('db', {
+        async removeUserById (id) {
+          expect(id).to.be.equal(99999);
 
+          return Promise.reject(new Error('Not found'));
+        }
+      });
+
+      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .delete('/api/v1/users/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(404);
+    });
+
+    it('must not delete himself', async () => {
+      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .delete('/api/v1/users/1')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(403);
     });
 
     it('must delete one user other the owner of access token, and the user resources', async () => {
+      rewireAPI.__Rewire__('db', {
+        async removeUserById (id) {
+          expect(id).to.be.equal(100);
 
+          return Promise.resolve();
+        }
+      });
+
+      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .delete('/api/v1/users/100')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(204);
     });
   });
 });
@@ -340,11 +383,12 @@ function expectApiResponse(res) {
 }
 
 function genAccessToken(user, privkey, passphrase) {
-  const { username, roles } = user;
+  const { id, username, roles } = user;
 
   return jwt.sign({
     exp: Math.floor(Date.now() / 1000) + (60 * 60),
-    sub: username,
+    sub: id,
+    username,
     roles
   }, {
     key: privkey,
