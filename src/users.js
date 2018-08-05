@@ -60,8 +60,15 @@ async function getUser(ctx) {
   const { id } = ctx.params;
 
   try {
-    const result = await db.findUserById(parseInt(id, 10));
-    ctx.body = result;
+    const userID = parseInt(id, 10);
+
+    const user = await db.findUserById(userID);
+    const resources = await db.findResourcesByUserId(userID);
+
+    ctx.body = {
+      ...user,
+      resources
+    };
   } catch (e) {
     e.status = 404;
     ctx.throw(e);

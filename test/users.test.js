@@ -262,10 +262,10 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(404);
     });
 
-    xit('must get one user, the owner of the token', async () => {
+    it('must denies one non-admin user to another user and his resources', async () => {
       rewireAPI.__Rewire__('db', {
-        async findUserByUsername (username) {
-          expect(username).to.be.equal('mockUser');
+        async findUserById (id) {
+          expect(id).to.be.equal(30);
 
           return Promise.resolve({
             username: 'mocka',
@@ -275,45 +275,96 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ id: 20, username: 'mockUser', roles: ['user'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id: 20, username: 'joe', roles: ['user'] }, privkey, passphrase);
       await supertest(app.callback())
-        .get('/api/v1/users/me')
+        .get('/api/v1/users/30')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(403);
+    });
+
+    it('must get one non-admin user and his resources, the owner of access token', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findUserById (id) {
+          expect(id).to.be.equal(20);
+
+          return Promise.resolve({
+            username: 'mocka',
+            email: 'mocka@mail.com',
+            roles: ['user'],
+            resources: new Array(10).fill({
+              id: 1,
+              name: 'Mock Resource Name',
+              createdAt: '2018-08-05T00:00:00Z',
+              updatedAt: '2018-08-05T00:00:00Z',
+            }).map(({ id, name }, index) => ({ id: id + index, name }))
+          });
+        }
+      });
+
+      const accessToken = genAccessToken({ id: 20, username: 'mocka', roles: ['user'] }, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/users/20')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
         .send()
         .expect(200);
+
+      expect(res.body.username).to.be.equal('mocka');
+      expect(res.body.email).to.be.equal('mocka@mail.com');
+      expect(res.body.roles).to.be.deep.equal(['user']);
+      expect(res.body.resources).to.have.length(10);
+
+      for(let resource of res.body.resources) {
+        expect(resource).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
+      }
     });
 
-    it('must get one user other than the owner of access token in case of admin access', async () => {
+    it('must get one user other the owner of access token, user has resources in case of admin access', async () => {
       rewireAPI.__Rewire__('db', {
+
         async findUserById (id) {
-          expect(id).to.be.equal(1);
+          expect(id).to.be.equal(20);
 
           return Promise.resolve({
             username: 'mocka',
             email: 'mocka@mail.com',
             roles: ['user']
           });
+        },
+
+        async findResourcesByUserId (userID) {
+          expect(userID).to.be.equal(20);
+
+          return Promise.resolve(new Array(10).fill({
+            id: 1,
+            name: 'Mock Resource Name',
+            createdAt: '2018-08-05T00:00:00Z',
+            updatedAt: '2018-08-05T00:00:00Z',
+          }).map((it, index) => ({ ...it, id: it.id + index })))
         }
       });
 
       const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
-      await supertest(app.callback())
-        .get('/api/v1/users/1')
+      const res = await supertest(app.callback())
+        .get('/api/v1/users/20')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
         .send()
         .expect(200);
-    });
 
-    it('must get one non-admin user and his resources, the owner of the token', async () => {
+      expect(res.body.username).to.be.equal('mocka');
+      expect(res.body.email).to.be.equal('mocka@mail.com');
+      expect(res.body.roles).to.be.deep.equal(['user']);
+      expect(res.body.resources).to.have.length(10);
 
-    });
-
-    it('must get one user other the owner of access token, user has resources in case of admin access', async () => {
-
+      for(let resource of res.body.resources) {
+        expect(resource).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
+      }
     });
   });
 

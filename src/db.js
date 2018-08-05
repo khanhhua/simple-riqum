@@ -1,5 +1,5 @@
 import debug from 'debug';
-import { initDb as modelsInitDb, User } from './models';
+import { initDb as modelsInitDb, User, Resource } from './models';
 
 const dbg = debug('simple-riqum:db');
 
@@ -100,4 +100,18 @@ export async function removeUserById(id) {
 
   dbg('User value:', user.dataValues);
   return user.dataValues;
+}
+
+export async function findResourcesByUserId(userId, { limit = 10, offset = 0 } = {}) {
+  dbg(`Finding resources by user id: ${userId}`);
+
+  const query = await Resource.findAll({
+    limit,
+    offset,
+    where: { ownerId: userId }
+  });
+
+  dbg(`Resources found:`, query.length);
+
+  return query.map(it => it.dataValues);
 }

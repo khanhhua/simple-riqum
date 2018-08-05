@@ -374,15 +374,12 @@ definitions:
         type: string
       name:
         type: string
-      quota:
-        type: object
-        properties:
-          limit:
-            type: integer
-          usage:
-            type: integer
-          unit:
-            type: string
+      ownerId:
+        type: integer
+      createdAt:
+        type: string
+      updatedAt:
+        type: string
   Category:
     type: object
     properties:
