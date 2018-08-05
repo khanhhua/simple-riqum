@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import fs from 'fs';
 
 import makeApp from '../src/app';
-import { __RewireAPI__ as rewireAPI } from '../src/users';
+import { __RewireAPI__ as rewireAPI } from '../src/resources';
 import { __RewireAPI__ as authRewireAPI } from '../src/auth';
 
 let privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
@@ -12,8 +12,10 @@ let passphrase = process.env.JWT_PASS;
 
 const genAccessToken = authRewireAPI.__get__('genAccessToken');
 
-describe('As a platform administrator, I should be able to create, list and delete users', () => {
+
+describe('As a platform user, I should be able to create, list and delete my resources', () => {
   let app;
+  let JOE_USER = { id: 10, username: 'joe', roles: ['user'] };
 
   beforeEach(() => {
     app = makeApp();
@@ -26,7 +28,7 @@ describe('As a platform administrator, I should be able to create, list and dele
 
     it('must require Authorization header', async () => {
       const res = await supertest(app.callback())
-        .post('/api/v1/users')
+        .post('/api/v1/resources')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .send({})
@@ -35,55 +37,131 @@ describe('As a platform administrator, I should be able to create, list and dele
       // Error response must comply to ApiResponse
       expectApiResponse(res);
     });
+  });
 
-    it('must deny user with non-"admin" roles from creating users', async () => {
-      const accessToken = genAccessToken({ username: 'mockUser', roles: ['user'] }, privkey, passphrase);
+  describe('List resources', () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
 
+    it('must list zero resources', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findResourcesByOwnerId (ownerId, options) {
+          expect(ownerId).to.be.deep.equal(10);
+          expect(options).to.be.deep.equal({
+            limit: 10,
+            offset: 0
+          });
+
+          return Promise.resolve([]);
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
       const res = await supertest(app.callback())
-        .post('/api/v1/users')
+        .get('/api/v1/resources')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          username: 'anewguy',
-          email: 'newguy@mail.com'
+        .send()
+        .expect(200);
+
+      expect(res.body).to.have.length(0);
+    });
+
+    it('must list a paginated list of 10 resources on page 1 by default', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findResourcesByOwnerId (ownerId, options) {
+          expect(ownerId).to.be.deep.equal(10);
+          expect(options).to.be.deep.equal({
+            limit: 10,
+            offset: 0
+          });
+
+          return Promise.resolve(new Array(10).fill({
+            id: '72b9f5a2-76f9-466e-84f6-886cce3e50bb',
+            name: 'avatar',
+            createdAt: '2018-08-05T00:00:00Z',
+            updatedAt: '2018-08-05T00:00:00Z'
+          }));
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/resources')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
+
+      expect(res.body).to.have.length(10);
+    });
+
+    it('must list a paginated list of 10 resources on page 2', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findResourcesByOwnerId (ownerId, options) {
+          expect(ownerId).to.be.deep.equal(10);
+          expect(options).to.be.deep.equal({
+            limit: 10,
+            offset: 10
+          });
+
+          return Promise.resolve(new Array(10).fill({
+            id: '72b9f5a2-76f9-466e-84f6-886cce3e50bb',
+            name: 'avatar',
+            createdAt: '2018-08-05T00:00:00Z',
+            updatedAt: '2018-08-05T00:00:00Z'
+          }));
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/resources')
+        .query({
+          page: 2,
+          size: 10
         })
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
+
+      expect(res.body).to.have.length(10);
+    });
+  });
+});
+
+describe('As a platform administrator, I should be able to create, list and delete users` resources', () => {
+  let app;
+  let ADMIN = { id: 1, username: 'admin', roles: ['admin'] };
+
+  beforeEach(() => {
+    app = makeApp();
+  });
+
+  describe('Authorization and authentication', () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
+
+    it('must require Authorization header', async () => {
+      const res = await supertest(app.callback())
+        .post('/api/v1/resources')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .send({})
         .expect(403);
 
       // Error response must comply to ApiResponse
       expectApiResponse(res);
     });
-
-    it('must allow user with "admin" roles to create users', async () => {
-      rewireAPI.__Rewire__('db', {
-        async createUser () {
-          return Promise.resolve({
-            username: 'anewguy',
-            email: 'newguy@mail.com'
-          })
-        }
-      });
-
-      const accessToken = genAccessToken({ username: 'mockUser', roles: ['admin'] }, privkey, passphrase);
-
-      const res = await supertest(app.callback())
-        .post('/api/v1/users')
-        .set('Content-Type', 'application/json')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          username: 'anewguy',
-          email: 'newguy@mail.com'
-        })
-        .expect(201);
-
-      // Error response must comply to ApiResponse
-      expect(res.body.username).to.be.equal('anewguy');
-      expect(res.body.email).to.be.equal('newguy@mail.com');
-    });
   });
 
-  describe('Create users', () => {
+  xdescribe('Create resources', () => {
     let accessToken;
     before(() => {
       accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
@@ -95,7 +173,7 @@ describe('As a platform administrator, I should be able to create, list and dele
 
     it('must invalidate wrong/missing data', async () => {
       const res = await supertest(app.callback())
-        .post('/api/v1/users')
+        .post('/api/v1/resources')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -106,7 +184,7 @@ describe('As a platform administrator, I should be able to create, list and dele
       expectApiResponse(res);
     });
 
-    it('must persist valid user', async () => {
+    it('must persist valid resource', async () => {
       rewireAPI.__Rewire__('db', {
         async createUser ({ username, email, roles }) {
           expect(username).to.be.equal('MockUSER');
@@ -117,7 +195,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
       const res = await supertest(app.callback())
-        .post('/api/v1/users')
+        .post('/api/v1/resources')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -133,8 +211,8 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-  describe('Update user', () => {
-    it('must reject non-existing user', async () => {
+  xdescribe('Update resource', () => {
+    it('must reject non-existing resource', async () => {
 
     });
 
@@ -142,19 +220,19 @@ describe('As a platform administrator, I should be able to create, list and dele
 
     });
 
-    it('must list a paginated list of 10 users on page 2', async () => {
+    it('must list a paginated list of 10 resources on page 2', async () => {
 
     });
   });
 
-  describe('List users', () => {
+  describe('List resources', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
     });
 
-    it('must list zero users', async () => {
+    it('must list zero resources', async () => {
       rewireAPI.__Rewire__('db', {
-        async findUsers (criteria, options) {
+        async findResources (criteria, options) {
           expect(criteria).to.be.deep.equal({});
           expect(options).to.be.deep.equal({
             limit: 10,
@@ -165,9 +243,9 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       const res = await supertest(app.callback())
-        .get('/api/v1/users')
+        .get('/api/v1/resources')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -177,9 +255,9 @@ describe('As a platform administrator, I should be able to create, list and dele
       expect(res.body).to.have.length(0);
     });
 
-    it('must list a paginated list of 10 users on page 1 by default', async () => {
+    it('must list a paginated list of 10 resources on page 1 by default', async () => {
       rewireAPI.__Rewire__('db', {
-        async findUsers (criteria, options) {
+        async findResources (criteria, options) {
           expect(criteria).to.be.deep.equal({});
           expect(options).to.be.deep.equal({
             limit: 10,
@@ -187,16 +265,17 @@ describe('As a platform administrator, I should be able to create, list and dele
           });
 
           return Promise.resolve(new Array(10).fill({
-            username: 'mocka',
-            email: 'mocka@mail.com',
-            roles: ['user']
+            id: '72b9f5a2-76f9-466e-84f6-886cce3e50bb',
+            name: 'avatar',
+            createdAt: '2018-08-05T00:00:00Z',
+            updatedAt: '2018-08-05T00:00:00Z'
           }));
         }
       });
 
-      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       const res = await supertest(app.callback())
-        .get('/api/v1/users')
+        .get('/api/v1/resources')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -206,9 +285,9 @@ describe('As a platform administrator, I should be able to create, list and dele
       expect(res.body).to.have.length(10);
     });
 
-    it('must list a paginated list of 10 users on page 2', async () => {
+    it('must list a paginated list of 10 resources on page 2', async () => {
       rewireAPI.__Rewire__('db', {
-        async findUsers (criteria, options) {
+        async findResources (criteria, options) {
           expect(criteria).to.be.deep.equal({});
           expect(options).to.be.deep.equal({
             limit: 10,
@@ -216,16 +295,17 @@ describe('As a platform administrator, I should be able to create, list and dele
           });
 
           return Promise.resolve(new Array(10).fill({
-            username: 'mocka',
-            email: 'mocka@mail.com',
-            roles: ['user']
+            id: '72b9f5a2-76f9-466e-84f6-886cce3e50bb',
+            name: 'avatar',
+            createdAt: '2018-08-05T00:00:00Z',
+            updatedAt: '2018-08-05T00:00:00Z'
           }));
         }
       });
 
-      const accessToken = genAccessToken({ id:1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       const res = await supertest(app.callback())
-        .get('/api/v1/users')
+        .get('/api/v1/resources')
         .query({
           page: 2,
           size: 10
@@ -240,12 +320,12 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-  describe('Get user', () => {
+  xdescribe('Get resource', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
     });
 
-    it('must respond with 404 for an unknown user', async () => {
+    it('must respond with 404 for an unknown resource', async () => {
       rewireAPI.__Rewire__('db', {
         async findById (id) {
           expect(id).to.be.equal(99999);
@@ -254,9 +334,9 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       await supertest(app.callback())
-        .get('/api/v1/users/99999')
+        .get('/api/v1/resources/99999')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -264,7 +344,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(404);
     });
 
-    it('must denies one non-admin user to another user', async () => {
+    it('must denies one non-admin user to another user`s resource', async () => {
       rewireAPI.__Rewire__('db', {
         async findUserById (id) {
           expect(id).to.be.equal(30);
@@ -279,7 +359,7 @@ describe('As a platform administrator, I should be able to create, list and dele
 
       const accessToken = genAccessToken({ id: 20, username: 'joe', roles: ['user'] }, privkey, passphrase);
       await supertest(app.callback())
-        .get('/api/v1/users/30')
+        .get('/api/v1/resources/30')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -287,34 +367,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(403);
     });
 
-    it('must get one non-admin user, the owner of access token', async () => {
-      rewireAPI.__Rewire__('db', {
-        async findUserById (id) {
-          expect(id).to.be.equal(20);
-
-          return Promise.resolve({
-            username: 'mocka',
-            email: 'mocka@mail.com',
-            roles: ['user']
-          });
-        }
-      });
-
-      const accessToken = genAccessToken({ id: 20, username: 'mocka', roles: ['user'] }, privkey, passphrase);
-      const res = await supertest(app.callback())
-        .get('/api/v1/users/20')
-        .set('Content-Type', 'application/json')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send()
-        .expect(200);
-
-      expect(res.body.username).to.be.equal('mocka');
-      expect(res.body.email).to.be.equal('mocka@mail.com');
-      expect(res.body.roles).to.be.deep.equal(['user']);
-    });
-
-    it('must get one user other the owner of access token', async () => {
+    it('must allow admin to access one user other than the owner of access token', async () => {
       rewireAPI.__Rewire__('db', {
 
         async findUserById (id) {
@@ -328,9 +381,9 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       const res = await supertest(app.callback())
-        .get('/api/v1/users/20')
+        .get('/api/v1/resources/20')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -343,13 +396,12 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-
-  describe('Delete users', () => {
+  xdescribe('Delete resource', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
     });
 
-    it('must respond with 404 for an unknown user', async () => {
+    it('must respond with 404 for an unknown resource', async () => {
       rewireAPI.__Rewire__('db', {
         async removeUserById (id) {
           expect(id).to.be.equal(99999);
@@ -358,9 +410,9 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       await supertest(app.callback())
-        .delete('/api/v1/users/99999')
+        .delete('/api/v1/resources/99999')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -368,18 +420,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(404);
     });
 
-    it('must not delete himself', async () => {
-      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
-      await supertest(app.callback())
-        .delete('/api/v1/users/1')
-        .set('Content-Type', 'application/json')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send()
-        .expect(403);
-    });
-
-    it('must delete one user other the owner of access token, and the user resources', async () => {
+    it('must delete access token owner`s one resource', async () => {
       rewireAPI.__Rewire__('db', {
         async removeUserById (id) {
           expect(id).to.be.equal(100);
@@ -388,9 +429,9 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       await supertest(app.callback())
-        .delete('/api/v1/users/100')
+        .delete('/api/v1/resources/100')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)

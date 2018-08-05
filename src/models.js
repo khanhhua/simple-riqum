@@ -1,4 +1,10 @@
+// Refers to article on working with datetime with timezone in Postgre
+// https://60devs.com/working-with-postgresql-timestamp-without-timezone-in-node.html
+import { setTypeParser } from 'pg-types';
 import Sequelize from 'sequelize';
+
+const TIMESTAMP_OID = 1114;
+setTypeParser(TIMESTAMP_OID, (timestamp) => timestamp);
 
 const DATABASE_URL  = process.env.DATABASE_URL;
 

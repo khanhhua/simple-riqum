@@ -7,6 +7,7 @@ import { validate } from 'swagger2-koa';
 
 import auth, { identify, protect } from './auth';
 import users from './users';
+import resources from './resources';
 
 export default function makeApp() {
   const dbg = debug('simple-riqum:app');
@@ -47,6 +48,7 @@ export default function makeApp() {
   // Mounting modules as we go
   auth(app, '/api/v1/auth');
   users(app, '/api/v1');
+  resources(app, '/api/v1');
 
   return app;
 }
