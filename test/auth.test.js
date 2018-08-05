@@ -46,7 +46,8 @@ describe('As a platform user, I need to authenticate with an email address and p
 
           return Promise.resolve({
             email,
-            username: 'MockUSER',
+            id: 1,
+            username: 'admin',
             roles: ['admin']
           });
         }
@@ -67,7 +68,8 @@ describe('As a platform user, I need to authenticate with an email address and p
       const { accessToken } = res.body;
       const decrypted = jwt.verify(accessToken, pubkey, { algorithms: ['RS512'] });
       expect(decrypted).to.exist;
-      expect(decrypted.sub).to.be.equal('MockUSER');
+      expect(decrypted.sub).to.be.equal(1);
+      expect(decrypted.username).to.be.equal('admin');
       expect(decrypted.iat).to.exist;
     });
 
