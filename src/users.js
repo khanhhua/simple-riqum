@@ -48,7 +48,7 @@ async function getMyUser(ctx) {
   const { username } = ctx.user;
 
   try {
-    const result = await db.findByUsername(username);
+    const result = await db.findUserByUsername(username);
     ctx.body = result;
   } catch (e) {
     e.status = 404;
@@ -60,7 +60,7 @@ async function getUser(ctx) {
   const { id } = ctx.params;
 
   try {
-    const result = await db.findById(parseInt(id, 10));
+    const result = await db.findUserById(parseInt(id, 10));
     ctx.body = result;
   } catch (e) {
     e.status = 404;
@@ -83,8 +83,22 @@ function updateUser(ctx, userId) {
   };
 }
 
-function deleteUser(ctx) {
-  ctx.body = {
-    ok: true
-  };
+async function deleteUser(ctx) {
+  const { id: userID } = ctx.user;
+  const { id } = ctx.params;
+
+  if (userID === parseInt(id, 10)) {
+    const e = new Error();
+    e.status = 403;
+    ctx.throw(e);
+  }
+
+  try {
+    await db.removeUserById(parseInt(id, 10));
+    ctx.body = null;
+    ctx.status = 204;
+  } catch (e) {
+    e.status = 404;
+    ctx.throw(e);
+  }
 }

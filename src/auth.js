@@ -73,7 +73,8 @@ export function identify(baseUrl, { ignored=[] }) {
           return;
         } else {
           ctx.user = {
-            username: decrypted.sub,
+            id: decrypted.sub,
+            username: decrypted.username,
             roles: decrypted.roles
           };
         }
@@ -86,11 +87,12 @@ export function identify(baseUrl, { ignored=[] }) {
     }
 
     if (process.env.NODE_ENV === 'development' && basicToken) {
-      const [email, password] = Buffer.from(basicToken, 'base64').toString().split(':');
-      dbg(`Email: ${email} password: ${password}`);
+      const [username, password] = Buffer.from(basicToken, 'base64').toString().split(':');
+      dbg(`Username: ${username} password: ${password}`);
 
       ctx.user = {
-        username: email,
+        id: 1,
+        username,
         roles: ['admin']
       };
 
@@ -184,15 +186,7 @@ async function login (ctx) {
     const user = await db.findUserByCredential(email, password);
 
     if (user) {
-      const accessToken = jwt.sign({
-        exp: Math.floor(Date.now() / 1000) + (60 * 60),
-        sub: user.username
-      }, {
-        key: privkey,
-        passphrase: passphrase
-      }, {
-        algorithm: 'RS512'
-      });
+      const accessToken = genAccessToken(user, privkey, passphrase);
 
       ctx.body = {
         accessToken,
@@ -202,4 +196,20 @@ async function login (ctx) {
     e.status = 403;
     ctx.throw(e);
   }
+}
+
+function genAccessToken(user, privkey, passphrase) {
+  const { id, username, roles } = user;
+
+  return jwt.sign({
+    exp: Math.floor(Date.now() / 1000) + (60 * 60),
+    sub: id,
+    username,
+    roles
+  }, {
+    key: privkey,
+    passphrase: passphrase
+  }, {
+    algorithm: 'RS512'
+  });
 }
