@@ -2,13 +2,15 @@ import supertest from 'supertest';
 import { expect } from 'chai';
 
 import fs from 'fs';
-import jwt from 'jsonwebtoken';
 
 import makeApp from '../src/app';
 import { __RewireAPI__ as rewireAPI } from '../src/users';
+import { __RewireAPI__ as authRewireAPI } from '../src/auth';
 
 let privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
 let passphrase = process.env.JWT_PASS;
+
+const genAccessToken = authRewireAPI.__get__('genAccessToken');
 
 describe('As a platform administrator, I should be able to create, list and delete users and their resources', () => {
   let app;
@@ -262,10 +264,10 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(404);
     });
 
-    xit('must get one user, the owner of the token', async () => {
+    it('must denies one non-admin user to another user', async () => {
       rewireAPI.__Rewire__('db', {
-        async findUserByUsername (username) {
-          expect(username).to.be.equal('mockUser');
+        async findUserById (id) {
+          expect(id).to.be.equal(30);
 
           return Promise.resolve({
             username: 'mocka',
@@ -275,20 +277,48 @@ describe('As a platform administrator, I should be able to create, list and dele
         }
       });
 
-      const accessToken = genAccessToken({ id: 20, username: 'mockUser', roles: ['user'] }, privkey, passphrase);
+      const accessToken = genAccessToken({ id: 20, username: 'joe', roles: ['user'] }, privkey, passphrase);
       await supertest(app.callback())
-        .get('/api/v1/users/me')
+        .get('/api/v1/users/30')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(403);
+    });
+
+    it('must get one non-admin user, the owner of access token', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findUserById (id) {
+          expect(id).to.be.equal(20);
+
+          return Promise.resolve({
+            username: 'mocka',
+            email: 'mocka@mail.com',
+            roles: ['user']
+          });
+        }
+      });
+
+      const accessToken = genAccessToken({ id: 20, username: 'mocka', roles: ['user'] }, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/users/20')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
         .send()
         .expect(200);
+
+      expect(res.body.username).to.be.equal('mocka');
+      expect(res.body.email).to.be.equal('mocka@mail.com');
+      expect(res.body.roles).to.be.deep.equal(['user']);
     });
 
-    it('must get one user other than the owner of access token in case of admin access', async () => {
+    it('must get one user other the owner of access token', async () => {
       rewireAPI.__Rewire__('db', {
+
         async findUserById (id) {
-          expect(id).to.be.equal(1);
+          expect(id).to.be.equal(20);
 
           return Promise.resolve({
             username: 'mocka',
@@ -299,21 +329,17 @@ describe('As a platform administrator, I should be able to create, list and dele
       });
 
       const accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
-      await supertest(app.callback())
-        .get('/api/v1/users/1')
+      const res = await supertest(app.callback())
+        .get('/api/v1/users/20')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
         .send()
         .expect(200);
-    });
 
-    it('must get one non-admin user and his resources, the owner of the token', async () => {
-
-    });
-
-    it('must get one user other the owner of access token, user has resources in case of admin access', async () => {
-
+      expect(res.body.username).to.be.equal('mocka');
+      expect(res.body.email).to.be.equal('mocka@mail.com');
+      expect(res.body.roles).to.be.deep.equal(['user']);
     });
   });
 
@@ -380,20 +406,4 @@ function expectApiResponse(res) {
   expect(res.body.type).to.exist;
   expect(res.body.message).to.exist;
   // expect(res.body.errors).to.exist;
-}
-
-function genAccessToken(user, privkey, passphrase) {
-  const { id, username, roles } = user;
-
-  return jwt.sign({
-    exp: Math.floor(Date.now() / 1000) + (60 * 60),
-    sub: id,
-    username,
-    roles
-  }, {
-    key: privkey,
-    passphrase: passphrase
-  }, {
-    algorithm: 'RS512'
-  });
 }
