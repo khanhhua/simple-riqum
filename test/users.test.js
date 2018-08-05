@@ -2,13 +2,15 @@ import supertest from 'supertest';
 import { expect } from 'chai';
 
 import fs from 'fs';
-import jwt from 'jsonwebtoken';
 
 import makeApp from '../src/app';
 import { __RewireAPI__ as rewireAPI } from '../src/users';
+import { __RewireAPI__ as authRewireAPI } from '../src/auth';
 
 let privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
 let passphrase = process.env.JWT_PASS;
+
+const genAccessToken = authRewireAPI.__get__('genAccessToken');
 
 describe('As a platform administrator, I should be able to create, list and delete users and their resources', () => {
   let app;
@@ -262,7 +264,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(404);
     });
 
-    it('must denies one non-admin user to another user and his resources', async () => {
+    it('must denies one non-admin user to another user', async () => {
       rewireAPI.__Rewire__('db', {
         async findUserById (id) {
           expect(id).to.be.equal(30);
@@ -285,7 +287,7 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(403);
     });
 
-    it('must get one non-admin user and his resources, the owner of access token', async () => {
+    it('must get one non-admin user, the owner of access token', async () => {
       rewireAPI.__Rewire__('db', {
         async findUserById (id) {
           expect(id).to.be.equal(20);
@@ -293,13 +295,7 @@ describe('As a platform administrator, I should be able to create, list and dele
           return Promise.resolve({
             username: 'mocka',
             email: 'mocka@mail.com',
-            roles: ['user'],
-            resources: new Array(10).fill({
-              id: 1,
-              name: 'Mock Resource Name',
-              createdAt: '2018-08-05T00:00:00Z',
-              updatedAt: '2018-08-05T00:00:00Z',
-            }).map(({ id, name }, index) => ({ id: id + index, name }))
+            roles: ['user']
           });
         }
       });
@@ -316,14 +312,9 @@ describe('As a platform administrator, I should be able to create, list and dele
       expect(res.body.username).to.be.equal('mocka');
       expect(res.body.email).to.be.equal('mocka@mail.com');
       expect(res.body.roles).to.be.deep.equal(['user']);
-      expect(res.body.resources).to.have.length(10);
-
-      for(let resource of res.body.resources) {
-        expect(resource).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
-      }
     });
 
-    it('must get one user other the owner of access token, user has resources in case of admin access', async () => {
+    it('must get one user other the owner of access token', async () => {
       rewireAPI.__Rewire__('db', {
 
         async findUserById (id) {
@@ -334,17 +325,6 @@ describe('As a platform administrator, I should be able to create, list and dele
             email: 'mocka@mail.com',
             roles: ['user']
           });
-        },
-
-        async findResourcesByUserId (userID) {
-          expect(userID).to.be.equal(20);
-
-          return Promise.resolve(new Array(10).fill({
-            id: 1,
-            name: 'Mock Resource Name',
-            createdAt: '2018-08-05T00:00:00Z',
-            updatedAt: '2018-08-05T00:00:00Z',
-          }).map((it, index) => ({ ...it, id: it.id + index })))
         }
       });
 
@@ -360,11 +340,6 @@ describe('As a platform administrator, I should be able to create, list and dele
       expect(res.body.username).to.be.equal('mocka');
       expect(res.body.email).to.be.equal('mocka@mail.com');
       expect(res.body.roles).to.be.deep.equal(['user']);
-      expect(res.body.resources).to.have.length(10);
-
-      for(let resource of res.body.resources) {
-        expect(resource).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
-      }
     });
   });
 
@@ -431,20 +406,4 @@ function expectApiResponse(res) {
   expect(res.body.type).to.exist;
   expect(res.body.message).to.exist;
   // expect(res.body.errors).to.exist;
-}
-
-function genAccessToken(user, privkey, passphrase) {
-  const { id, username, roles } = user;
-
-  return jwt.sign({
-    exp: Math.floor(Date.now() / 1000) + (60 * 60),
-    sub: id,
-    username,
-    roles
-  }, {
-    key: privkey,
-    passphrase: passphrase
-  }, {
-    algorithm: 'RS512'
-  });
 }

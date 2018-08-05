@@ -75,7 +75,8 @@ export function identify(baseUrl, { ignored=[] }) {
           ctx.user = {
             id: decrypted.sub,
             username: decrypted.username,
-            roles: decrypted.roles
+            roles: decrypted.roles,
+            scopes: decrypted.scopes
           };
         }
 
@@ -93,7 +94,12 @@ export function identify(baseUrl, { ignored=[] }) {
       ctx.user = {
         id: 1,
         username,
-        roles: ['admin']
+        roles: ['admin'],
+        scopes: [
+          `/api/v1/users/1`,
+          `/api/v1/users/me`,
+          '/api/v1/resources/'
+        ]
       };
 
       await next();
@@ -150,12 +156,21 @@ export function protect(rules = {
     }
     // If a user has any of the defined roles, allow resource access
     const userRoles = ctx.user.roles;
+    const scopes = ctx.user.scopes;
+    const requestPath = ctx.request.path;
     const { allowed: allowedRules } = rules;
 
     if (Array.isArray(allowedRules)) {
       for (let role of allowedRules) {
         if (userRoles.includes(role)) {
           return await next();
+        } else if (role === 'owner') {
+
+          for (let scope of scopes) {
+            if (requestPath.indexOf(scope) === 0) {
+              return await next();
+            }
+          }
         }
       }
 
@@ -165,7 +180,8 @@ export function protect(rules = {
       });
     } else if (typeof allowedRules === 'function') {
       if (await allowedRules(ctx) === true) {
-        return next();
+        await next();
+        return;
       } else {
         dbg('Rule callback function has rejected user access');
         ctx.throw('Forbidden', 403, {
@@ -199,13 +215,20 @@ async function login (ctx) {
 }
 
 function genAccessToken(user, privkey, passphrase) {
+  // TODO Parameterize API version as it affects scopes of access
   const { id, username, roles } = user;
+  const { scopes = [
+    `/api/v1/users/${id}`,
+    `/api/v1/users/me`,
+    '/api/v1/resources/'
+  ] } = user;
 
   return jwt.sign({
     exp: Math.floor(Date.now() / 1000) + (60 * 60),
     sub: id,
     username,
-    roles
+    roles,
+    scopes
   }, {
     key: privkey,
     passphrase: passphrase

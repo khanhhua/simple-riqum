@@ -109,7 +109,13 @@ describe('auth module', () => {
             }
           });
           ctx.user = {
-            roles: ['admin']
+            roles: ['admin'],
+            scopes: [
+              '/api/v1/pseudo-path-for-testing-purpose-only'
+            ]
+          };
+          ctx.request = {
+            path: '/api/v1/pseudo-path-for-testing-purpose-only'
           };
           next = chai.spy();
         });
@@ -121,6 +127,11 @@ describe('auth module', () => {
 
         it('must be allowed with rules.allowed = ["admin"]', async () => {
           await auth.protect({ allowed: ['admin'] })(ctx, next);
+          expect(next).to.have.been.called.once;
+        });
+
+        it('must be allowed with rules.allowed = ["owner"]', async () => {
+          await auth.protect({ allowed: ['owner'] })(ctx, next);
           expect(next).to.have.been.called.once;
         });
 
@@ -152,6 +163,9 @@ describe('auth module', () => {
           ctx.user = {
             roles: ['user']
           };
+          ctx.request = {
+            path: '/api/v1/pseudo-path-for-testing-purpose-only'
+          };
           next = chai.spy();
         });
 
@@ -181,7 +195,7 @@ describe('auth module', () => {
         });
       });
 
-      describe('for user to access his own resource, and rules.allowed=["user"]', () => {
+      describe('for user to access his own resource, and rules.allowed=["owner"]', () => {
         let ctx;
         let next;
 
@@ -195,18 +209,43 @@ describe('auth module', () => {
           next = chai.spy();
         });
 
-        it('must be allowed if he owns the resource', () => {
+        it('must be allowed if he owns the resource "/api/v1/users/10"', async () => {
           ctx.user = {
+            id: 10,
             username: 'joe',
-            roles: ['user']
+            roles: ['user'],
+            scopes: [
+              '/api/v1/users/10'
+            ]
           };
+          ctx.request = {
+            path: '/api/v1/users/10'
+          };
+
+          await auth.protect({ allowed: ['owner'] })(ctx, next);
+          expect(next).to.have.been.called.once;
         });
 
-        it('must be rejecte if he does not own the resource', () => {
+        it('must be rejected if he does not own the resource "/api/v1/users/10"', async () => {
           ctx.user = {
+            id: 10,
             username: 'joe',
-            roles: ['user']
+            roles: ['user'],
+            scopes: [
+              '/api/v1/users/1'
+            ]
           };
+          ctx.request = {
+            path: '/api/v1/users/10'
+          };
+
+          try {
+            await auth.protect({ allowed: ['owner'] })(ctx, next);
+          } catch (e) {
+            expect(e).to.be.an('error');
+            expect(ctx.throw).to.have.been.called.once;
+          }
+
         });
       });
     })

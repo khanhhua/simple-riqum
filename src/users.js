@@ -24,7 +24,7 @@ export default function (app, baseUrl) {
   router.post('/users', protect(adminOnlyRules), createUser);
 
   router.get('/users/me', protect(ownerOnlyRules), getMyUser);
-  router.get('/users/:id', protect(adminOnlyRules), getUser);
+  router.get('/users/:id', protect(ownerOnlyRules), getUser);
   router.put('/users/:id', protect(adminOnlyRules), updateUser);
   router.delete('/users/:id', protect(adminOnlyRules), deleteUser);
 
@@ -63,12 +63,8 @@ async function getUser(ctx) {
     const userID = parseInt(id, 10);
 
     const user = await db.findUserById(userID);
-    const resources = await db.findResourcesByUserId(userID);
 
-    ctx.body = {
-      ...user,
-      resources
-    };
+    ctx.body = user;
   } catch (e) {
     e.status = 404;
     ctx.throw(e);
