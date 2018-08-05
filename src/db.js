@@ -102,16 +102,25 @@ export async function removeUserById(id) {
   return user.dataValues;
 }
 
-export async function findResourcesByUserId(userId, { limit = 10, offset = 0 } = {}) {
-  dbg(`Finding resources by user id: ${userId}`);
+export async function findResourcesByOwnerId(ownerId, { limit = 10, offset = 0 } = {}) {
+  dbg(`Finding resources by user id: ${ownerId}`);
 
   const query = await Resource.findAll({
+    raw: true,
     limit,
     offset,
-    where: { ownerId: userId }
+    where: { ownerId }
   });
 
   dbg(`Resources found:`, query.length);
 
-  return query.map(it => it.dataValues);
+  return query.map(it => ({...it, createdAt: it.createdAt.toISOString(), updatedAt: it.updatedAt.toISOString() }));
+}
+
+export async function findResources(criteria, options) {
+
+}
+
+export async function findResourceById(resourceId) {
+
 }

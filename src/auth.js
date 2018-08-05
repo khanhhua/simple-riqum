@@ -98,7 +98,7 @@ export function identify(baseUrl, { ignored=[] }) {
         scopes: [
           `/api/v1/users/1`,
           `/api/v1/users/me`,
-          '/api/v1/resources/'
+          '/api/v1/resources'
         ]
       };
 
@@ -220,7 +220,7 @@ function genAccessToken(user, privkey, passphrase) {
   const { scopes = [
     `/api/v1/users/${id}`,
     `/api/v1/users/me`,
-    '/api/v1/resources/'
+    '/api/v1/resources'
   ] } = user;
 
   return jwt.sign({

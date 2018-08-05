@@ -235,7 +235,7 @@ paths:
           description: User not found
           schema:
             $ref: '#/definitions/ApiResponse'
-  /resources:
+  '/resources':
     post:
       tags:
         - resource
@@ -249,15 +249,32 @@ paths:
     get:
       tags:
         - resource
+      security:
+      - BasicAuth: []
+      summary: Get one or more resources
+      description: By default, only resources under current user's ownership are retrieved
+      parameters:
+      - name: page
+        in: query
+        type: integer
+        description: Page number to retrieve
+      - name: size
+        in: query
+        type: integer
+        description: Elements per page to retrieve
       responses:
         '200':
-          description: successful operation
+          description: A list of resources
           schema:
             type: array
             items:
               $ref: '#/definitions/Resource'
         '400':
           description: Invalid input values
+        '500':
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ApiResponse'
   '/resources/{resourceId}':
     get:
       tags:
