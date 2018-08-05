@@ -259,6 +259,71 @@ describe('As a platform user, I should be able to create, list and delete my res
         .expect(404);
     });
   });
+
+  describe('Delete resource', () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
+
+    it('must respond with 404 for an unknown resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async removeUserById (id) {
+          expect(id).to.be.equal(99999);
+
+          return Promise.reject(new Error('Not found'));
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+      await supertest(app.callback())
+        .delete('/api/v1/resources/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(404);
+    });
+
+    it('must reject if token owner is not owner of resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async removeResourceById (id, { ownerId }) {
+          expect(id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
+          expect(ownerId).to.be.equal(JOE_USER.id);
+
+          return Promise.reject(new Error('Not found'));
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+      await supertest(app.callback())
+        .delete('/api/v1/resources/12b9f5a2-76f9-466e-84f6-886cce3e50bb')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(404);
+    });
+
+    it('must delete access token owner`s one resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async removeResourceById (id, { ownerId }) {
+          expect(id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
+          expect(ownerId).to.be.equal(JOE_USER.id);
+
+          return Promise.resolve();
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+      await supertest(app.callback())
+        .delete('/api/v1/resources/72b9f5a2-76f9-466e-84f6-886cce3e50bb')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(204);
+    });
+  });
 });
 
 describe('As a platform administrator, I should be able to create, list and delete users` resources', () => {
@@ -501,7 +566,7 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-  xdescribe('Delete resource', () => {
+  describe('Delete resource', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
     });
@@ -525,10 +590,10 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(404);
     });
 
-    it('must delete access token owner`s one resource', async () => {
+    it('must delete even if admin is not owner of resource', async () => {
       rewireAPI.__Rewire__('db', {
-        async removeUserById (id) {
-          expect(id).to.be.equal(100);
+        async removeResourceById (id) {
+          expect(id).to.be.equal('12b9f5a2-76f9-466e-84f6-886cce3e50bb');
 
           return Promise.resolve();
         }
@@ -536,7 +601,26 @@ describe('As a platform administrator, I should be able to create, list and dele
 
       const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       await supertest(app.callback())
-        .delete('/api/v1/resources/100')
+        .delete('/api/v1/resources/12b9f5a2-76f9-466e-84f6-886cce3e50bb')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(204);
+    });
+
+    it('must delete access token owner`s one resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async removeResourceById (id) {
+          expect(id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
+
+          return Promise.resolve();
+        }
+      });
+
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      await supertest(app.callback())
+        .delete('/api/v1/resources/72b9f5a2-76f9-466e-84f6-886cce3e50bb')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
