@@ -114,13 +114,36 @@ export async function findResourcesByOwnerId(ownerId, { limit = 10, offset = 0 }
 
   dbg(`Resources found:`, query.length);
 
-  return query.map(it => ({...it, createdAt: it.createdAt.toISOString(), updatedAt: it.updatedAt.toISOString() }));
+  return query.map(isolify);
 }
 
 export async function findResources(criteria, options) {
 
 }
 
-export async function findResourceById(resourceId) {
+export async function findResourceById(resourceID, { ownerId = undefined } = {}) {
+  dbg(`Finding one resource by id: ${resourceID}`);
 
+  const resource = await Resource.findOne({
+    raw: true,
+    where: ownerId ? { ownerId, id: resourceID }: { id: resourceID }
+  });
+
+  if (!resource) {
+    throw new Error('Not found');
+  }
+
+  return isolify(resource);
+}
+
+function isolify(item) {
+  if (item.createdAt) {
+    item.createdAt = item.createdAt.toISOString();
+  }
+
+  if (item.updatedAt) {
+    item.updatedAt = item.updatedAt.toISOString();
+  }
+
+  return item;
 }
