@@ -105,20 +105,31 @@ export async function removeUserById(id) {
 export async function findResourcesByOwnerId(ownerId, { limit = 10, offset = 0 } = {}) {
   dbg(`Finding resources by user id: ${ownerId}`);
 
-  const query = await Resource.findAll({
+  const resources = await Resource.findAll({
     raw: true,
     limit,
     offset,
     where: { ownerId }
   });
 
-  dbg(`Resources found:`, query.length);
+  dbg(`Resources found:`, resources.length);
 
-  return query.map(isolify);
+  return resources.map(isolify);
 }
 
-export async function findResources(criteria, options) {
+export async function findResources(criteria, { limit = 10, offset = 0 } = {}) {
+  dbg(`Finding resources by criteria: ${criteria}`);
 
+  const resources = await Resource.findAll({
+    raw: true,
+    limit,
+    offset,
+    where: criteria
+  });
+
+  dbg(`Resources found:`, resources.length);
+
+  return resources.map(isolify);
 }
 
 export async function findResourceById(resourceID, { ownerId = undefined } = {}) {
@@ -134,6 +145,14 @@ export async function findResourceById(resourceID, { ownerId = undefined } = {})
   }
 
   return isolify(resource);
+}
+
+export async function createResource({ name, ownerId }) {
+  dbg(`Creating new resource with for owner=${ownerId}`);
+
+  const resource = await Resource.create({ name, ownerId });
+
+  return resource.dataValues;
 }
 
 function isolify(item) {

@@ -39,6 +39,57 @@ describe('As a platform user, I should be able to create, list and delete my res
     });
   });
 
+  describe('Create resources', () => {
+    let accessToken;
+    before(() => {
+      accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+    });
+
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
+
+    it('must invalidate wrong/missing data', async () => {
+      const res = await supertest(app.callback())
+        .post('/api/v1/resources')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({})
+        .expect(400);
+
+      // Error response must comply to ApiResponse
+      expectApiResponse(res);
+    });
+
+    it('must persist valid resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async createResource ({ name, ownerId }) {
+          expect(name).to.be.equal('avatar');
+          expect(ownerId).to.be.equal(10);
+
+          return Promise.resolve({
+            id: '72b9f5a2-76f9-466e-84f6-886cce3e50bb',
+            name,
+            createdAt: '2018-08-06T00:00:00Z',
+            updatedAt: '2018-08-06T00:00:00Z'
+          });
+        }
+      });
+      const res = await supertest(app.callback())
+        .post('/api/v1/resources')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'avatar'
+        })
+        .expect(201);
+
+      expect(res.body.name).to.be.equal('avatar');
+    });
+  });
+
   describe('List resources', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
@@ -236,10 +287,10 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-  xdescribe('Create resources', () => {
+  describe('Create resources', () => {
     let accessToken;
     before(() => {
-      accessToken = genAccessToken({ id: 1, username: 'admin', roles: ['admin'] }, privkey, passphrase);
+      accessToken = genAccessToken(ADMIN, privkey, passphrase);
     });
 
     afterEach(() => {
@@ -261,12 +312,16 @@ describe('As a platform administrator, I should be able to create, list and dele
 
     it('must persist valid resource', async () => {
       rewireAPI.__Rewire__('db', {
-        async createUser ({ username, email, roles }) {
-          expect(username).to.be.equal('MockUSER');
-          expect(email).to.be.equal('mock@mail.com');
-          expect(roles).to.be.deep.equal(['user']);
+        async createResource ({ name, ownerId }) {
+          expect(name).to.be.equal('avatar');
+          expect(ownerId).to.be.equal(1);
 
-          return Promise.resolve({ username, email, roles });
+          return Promise.resolve({
+            id: '72b9f5a2-76f9-466e-84f6-886cce3e50bb',
+            name,
+            createdAt: '2018-08-06T00:00:00Z',
+            updatedAt: '2018-08-06T00:00:00Z'
+          });
         }
       });
       const res = await supertest(app.callback())
@@ -275,14 +330,11 @@ describe('As a platform administrator, I should be able to create, list and dele
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          username: 'MockUSER',
-          email: 'mock@mail.com'
+          name: 'avatar'
         })
         .expect(201);
 
-      expect(res.body.username).to.be.equal('MockUSER');
-      expect(res.body.email).to.be.equal('mock@mail.com');
-      expect(res.body.roles).to.be.deep.equal(['user']);
+      expect(res.body.name).to.be.equal('avatar');
     });
   });
 

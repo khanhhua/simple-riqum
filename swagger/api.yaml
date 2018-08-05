@@ -239,13 +239,33 @@ paths:
     post:
       tags:
         - resource
+      security:
+        - BasicAuth: []
+      summary: Create new resource
+      description: By default, new resource belongs to the current user
+      parameters:
+      - in: body
+        name: body
+        description: Created resource object
+        required: true
+        schema:
+          $ref: '#/definitions/Resource'
       responses:
-        '200':
+        '201':
           description: successful operation
           schema:
             $ref: '#/definitions/Resource'
         '400':
-          description: Invalid input values
+          description: invalid post request
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '403':
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '500':
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ApiResponse'
     get:
       tags:
         - resource
@@ -390,7 +410,6 @@ definitions:
   Resource:
     type: object
     required:
-      - id
       - name
     properties:
       id:
@@ -399,10 +418,6 @@ definitions:
         type: string
       ownerId:
         type: integer
-      createdAt:
-        type: string
-      updatedAt:
-        type: string
   Category:
     type: object
     properties:
