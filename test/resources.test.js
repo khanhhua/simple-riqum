@@ -133,6 +133,81 @@ describe('As a platform user, I should be able to create, list and delete my res
       expect(res.body).to.have.length(10);
     });
   });
+
+  describe('Get resource', () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
+
+    it('must respond with 404 for an unknown resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findById (id) {
+          expect(id).to.be.equal(99999);
+
+          return Promise.reject(new Error('Not found'));
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+      await supertest(app.callback())
+        .get('/api/v1/resources/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(404);
+    });
+
+    it('must allow owner to access his resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findResourceById (id, { ownerId }) {
+          expect(id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
+          expect(ownerId).to.be.equal(JOE_USER.id);
+
+          return Promise.resolve({
+            id,
+            name: 'avatar',
+            createdAt: '2018-08-05T00:00:00Z',
+            updatedAt: '2018-08-05T00:00:00Z'
+          });
+        }
+      });
+
+      const accessToken = genAccessToken(JOE_USER, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .get('/api/v1/resources/72b9f5a2-76f9-466e-84f6-886cce3e50bb')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(200);
+
+      expect(res.body.id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
+      expect(res.body.name).to.be.equal('avatar');
+      expect(res.body.createdAt).to.be.equal('2018-08-05T00:00:00Z');
+      expect(res.body.updatedAt).to.be.equal('2018-08-05T00:00:00Z');
+    });
+
+    it('must denies one non-admin user to another user`s resource', async () => {
+      rewireAPI.__Rewire__('db', {
+        async findResourceById (id, { ownerId }) {
+          expect(id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
+          expect(ownerId).to.be.equal(20);
+
+          return Promise.reject(new Error('Not found'));
+        }
+      });
+
+      const accessToken = genAccessToken({ id: 20, username: 'jane', roles: ['user'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .get('/api/v1/resources/72b9f5a2-76f9-466e-84f6-886cce3e50bb')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send()
+        .expect(404);
+    });
+  });
 });
 
 describe('As a platform administrator, I should be able to create, list and delete users` resources', () => {
@@ -320,7 +395,7 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-  xdescribe('Get resource', () => {
+  describe('Get resource', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
     });
@@ -344,55 +419,33 @@ describe('As a platform administrator, I should be able to create, list and dele
         .expect(404);
     });
 
-    it('must denies one non-admin user to another user`s resource', async () => {
-      rewireAPI.__Rewire__('db', {
-        async findUserById (id) {
-          expect(id).to.be.equal(30);
-
-          return Promise.resolve({
-            username: 'mocka',
-            email: 'mocka@mail.com',
-            roles: ['user']
-          });
-        }
-      });
-
-      const accessToken = genAccessToken({ id: 20, username: 'joe', roles: ['user'] }, privkey, passphrase);
-      await supertest(app.callback())
-        .get('/api/v1/resources/30')
-        .set('Content-Type', 'application/json')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send()
-        .expect(403);
-    });
-
     it('must allow admin to access one user other than the owner of access token', async () => {
       rewireAPI.__Rewire__('db', {
-
-        async findUserById (id) {
-          expect(id).to.be.equal(20);
+        async findResourceById (id) {
+          expect(id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
 
           return Promise.resolve({
-            username: 'mocka',
-            email: 'mocka@mail.com',
-            roles: ['user']
+            id,
+            name: 'avatar',
+            createdAt: '2018-08-05T00:00:00Z',
+            updatedAt: '2018-08-05T00:00:00Z'
           });
         }
       });
 
       const accessToken = genAccessToken(ADMIN, privkey, passphrase);
       const res = await supertest(app.callback())
-        .get('/api/v1/resources/20')
+        .get('/api/v1/resources/72b9f5a2-76f9-466e-84f6-886cce3e50bb')
         .set('Content-Type', 'application/json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${accessToken}`)
         .send()
         .expect(200);
 
-      expect(res.body.username).to.be.equal('mocka');
-      expect(res.body.email).to.be.equal('mocka@mail.com');
-      expect(res.body.roles).to.be.deep.equal(['user']);
+      expect(res.body.id).to.be.equal('72b9f5a2-76f9-466e-84f6-886cce3e50bb');
+      expect(res.body.name).to.be.equal('avatar');
+      expect(res.body.createdAt).to.be.equal('2018-08-05T00:00:00Z');
+      expect(res.body.updatedAt).to.be.equal('2018-08-05T00:00:00Z');
     });
   });
 

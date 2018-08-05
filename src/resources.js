@@ -47,14 +47,17 @@ async function findResources(ctx) {
 }
 
 async function getResource(ctx) {
-  const { id } = ctx.params;
+  const { user: { id: userId, roles } } = ctx;
+  const { id: resourceID } = ctx.params;
 
   try {
-    const userID = parseInt(id, 10);
-
-    const user = await db.findResourceById(userID);
-
-    ctx.body = user;
+    if (roles.includes('admin')) {
+      const resource = await db.findResourceById(resourceID);
+      ctx.body = resource;
+    } else {
+      const resource = await db.findResourceById(resourceID, { ownerId: userId });
+      ctx.body = resource;
+    }
   } catch (e) {
     e.status = 404;
     ctx.throw(e);
