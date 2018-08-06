@@ -9,6 +9,23 @@ export async function initDb() {
   return await modelsInitDb();
 }
 
+/**
+ * Create user
+ *
+ * @param username
+ * @param email
+ * @param password
+ * @param roles
+ * @returns {Promise<void>}
+ */
+export async function createUser({ username, email, password, roles=['user'] }) {
+  dbg(`Creating new user with roles [${roles.join(', ')}]`);
+
+  const user = await User.create({ username, email, password, roles: ['user'] });
+
+  return user.dataValues;
+}
+
 export async function findUserById(id) {
   dbg('Finding user by user id...');
   const user = await User.findOne({
@@ -50,22 +67,6 @@ export async function findUserByCredential(email, password) {
   return user.dataValues;
 }
 
-/**
- * Create user
- *
- * @param username
- * @param email
- * @param password
- * @param roles
- * @returns {Promise<void>}
- */
-export async function createUser({ username, email, password, roles=['user'] }) {
-  dbg(`Creating new user with roles [${roles.join(', ')}]`);
-
-  const user = await User.create({ username, email, password, roles: ['user'] });
-
-  return user.dataValues;
-}
 
 /**
  *
@@ -85,6 +86,26 @@ export async function findUsers(criteria = {}, { limit = 10, offset = 0 }) {
   });
 
   return query.map(it => it.dataValues);
+}
+
+/**
+ * Update an existing user
+ *
+ * @param id
+ * @param updateData
+ * @returns {Promise<{}|*>}
+ */
+export async function updateUserById(id, updateData) {
+  const user = await User.findById(id);
+
+  const { roles, email, password } = {... user.dataValues, ...updateData};
+  await user.update({ roles, email, password });
+
+  return user.dataValues;
+}
+
+export async function updateUserQuotaById(id, quota) {
+  return;
 }
 
 export async function removeUserById(id) {

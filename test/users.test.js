@@ -1,11 +1,14 @@
 import supertest from 'supertest';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import spies from 'chai-spies';
 
 import fs from 'fs';
 
 import makeApp from '../src/app';
 import { __RewireAPI__ as rewireAPI } from '../src/users';
 import { __RewireAPI__ as authRewireAPI } from '../src/auth';
+
+chai.use(spies);
 
 let privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
 let passphrase = process.env.JWT_PASS;
@@ -14,6 +17,7 @@ const genAccessToken = authRewireAPI.__get__('genAccessToken');
 
 describe('As a platform administrator, I should be able to create, list and delete users', () => {
   let app;
+  let ADMIN = { id: 1, username: 'admin', roles: ['admin'] };
 
   beforeEach(() => {
     app = makeApp();
@@ -134,16 +138,57 @@ describe('As a platform administrator, I should be able to create, list and dele
   });
 
   describe('Update user', () => {
-    it('must reject non-existing user', async () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
 
+    it('must respond with 404 for an unknown user', async () => {
+      const updateUserById = chai.spy(() => Promise.reject(new Error('Not found')));
+
+      rewireAPI.__Rewire__('db', {
+        updateUserById
+      });
+
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      await supertest(app.callback())
+        .put('/api/v1/users/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          roles: ['admin']
+        })
+        .expect(404);
+
+      expect(updateUserById).to.have.been.called.with(99999, { roles: ['admin'] });
     });
 
     it('must update', async () => {
+      const updateUserById = chai.spy(() => Promise.resolve({
+        username: 'MockUSER',
+        email: 'mock@mail.com',
+        roles: ['admin']
+      }));
 
-    });
+      rewireAPI.__Rewire__('db', {
+        updateUserById
+      });
 
-    it('must list a paginated list of 10 users on page 2', async () => {
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .put('/api/v1/users/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          roles: ['admin']
+        })
+        .expect(200);
 
+      expect(updateUserById).to.have.been.called.with(99999, { roles: ['admin'] });
+      expect(res.body.username).to.be.equal('MockUSER');
+      expect(res.body.email).to.be.equal('mock@mail.com');
+      expect(res.body.roles).to.be.deep.equal(['admin']);
     });
   });
 
