@@ -1,11 +1,14 @@
 import supertest from 'supertest';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import spies from 'chai-spies';
 
 import fs from 'fs';
 
 import makeApp from '../src/app';
 import { __RewireAPI__ as rewireAPI } from '../src/users';
 import { __RewireAPI__ as authRewireAPI } from '../src/auth';
+
+chai.use(spies);
 
 let privkey = fs.readFileSync(process.env.JWT_PRIVATE_KEY);
 let passphrase = process.env.JWT_PASS;
@@ -14,6 +17,7 @@ const genAccessToken = authRewireAPI.__get__('genAccessToken');
 
 describe('As a platform administrator, I should be able to create, list and delete users', () => {
   let app;
+  let ADMIN = { id: 1, username: 'admin', roles: ['admin'] };
 
   beforeEach(() => {
     app = makeApp();
@@ -134,16 +138,57 @@ describe('As a platform administrator, I should be able to create, list and dele
   });
 
   describe('Update user', () => {
-    it('must reject non-existing user', async () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
 
+    it('must respond with 404 for an unknown user', async () => {
+      const updateUserById = chai.spy(() => Promise.reject(new Error('Not found')));
+
+      rewireAPI.__Rewire__('db', {
+        updateUserById
+      });
+
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      await supertest(app.callback())
+        .put('/api/v1/users/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          roles: ['admin']
+        })
+        .expect(404);
+
+      expect(updateUserById).to.have.been.called.with(99999, { roles: ['admin'] });
     });
 
     it('must update', async () => {
+      const updateUserById = chai.spy(() => Promise.resolve({
+        username: 'MockUSER',
+        email: 'mock@mail.com',
+        roles: ['admin']
+      }));
 
-    });
+      rewireAPI.__Rewire__('db', {
+        updateUserById
+      });
 
-    it('must list a paginated list of 10 users on page 2', async () => {
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .put('/api/v1/users/99999')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          roles: ['admin']
+        })
+        .expect(200);
 
+      expect(updateUserById).to.have.been.called.with(99999, { roles: ['admin'] });
+      expect(res.body.username).to.be.equal('MockUSER');
+      expect(res.body.email).to.be.equal('mock@mail.com');
+      expect(res.body.roles).to.be.deep.equal(['admin']);
     });
   });
 
@@ -343,7 +388,6 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-
   describe('Delete users', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
@@ -396,6 +440,78 @@ describe('As a platform administrator, I should be able to create, list and dele
         .set('Authorization', `Bearer ${accessToken}`)
         .send()
         .expect(204);
+    });
+  });
+
+  describe('Update quota for user', () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
+
+    it('must respond with 404 for an unknown user', async () => {
+      const updateUserQuotaById = chai.spy(() => Promise.reject(new Error('Not found')));
+
+      rewireAPI.__Rewire__('db', {
+        updateUserQuotaById
+      });
+
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      await supertest(app.callback())
+        .put('/api/v1/users/99999/quota')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          limit: 500,
+          unit: 'item'
+        })
+        .expect(404);
+
+      expect(updateUserQuotaById).to.have.been.called.with(99999, {
+        limit: 500,
+        unit: 'item'
+      });
+    });
+
+    it('must respond with 403 for an non-admin user', async () => {
+      const accessToken = genAccessToken({ id: 10, username: 'joe', roles: ['user'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .put('/api/v1/users/10/quota')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          limit: 500,
+          unit: 'item'
+        })
+        .expect(403);
+    });
+
+    it('must update user quota', async () => {
+      const updateUserQuotaById = chai.spy((userId, { limit, unit }) => ({
+        limit,
+        unit
+      }));
+
+      rewireAPI.__Rewire__('db', {
+        updateUserQuotaById
+      });
+
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .put('/api/v1/users/10/quota')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          limit: 500,
+          unit: 'item'
+        })
+        .expect(200);
+
+      expect(updateUserQuotaById).to.have.been.called.with(10, { limit: 500, unit: 'item' });
+      expect(res.body.limit).to.be.equal(500);
+      expect(res.body.unit).to.be.equal('item');
     });
   });
 });

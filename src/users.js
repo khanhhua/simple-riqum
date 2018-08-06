@@ -28,6 +28,8 @@ export default function (app, baseUrl) {
   router.put('/users/:id', protect(adminOnlyRules), updateUser);
   router.delete('/users/:id', protect(adminOnlyRules), deleteUser);
 
+  router.put('/users/:id/quota', protect(adminOnlyRules), updateUserQuota);
+
   app.use(router.routes());
   app.use(router.allowedMethods());
 }
@@ -80,10 +82,34 @@ async function createUser(ctx) {
   ctx.status = 201;
 }
 
-function updateUser(ctx, userId) {
-  ctx.body = {
-    ok: true
-  };
+async function updateUser(ctx) {
+  const { id } = ctx.params;
+  const { body: { email, roles } } = ctx.request;
+
+  try {
+    const updateData = omitUndefines({ email, roles });
+
+    const result = await db.updateUserById(parseInt(id, 10), updateData);
+
+    ctx.body = result;
+  } catch (e) {
+    e.status = 404;
+    ctx.throw(e);
+  }
+}
+
+async function updateUserQuota(ctx) {
+  const { id } = ctx.params;
+  const { body: quota } = ctx.request;
+
+  try {
+    const result = await db.updateUserQuotaById(parseInt(id, 10), quota );
+
+    ctx.body = result;
+  } catch (e) {
+    e.status = 404;
+    ctx.throw(e);
+  }
 }
 
 async function deleteUser(ctx) {
@@ -104,4 +130,10 @@ async function deleteUser(ctx) {
     e.status = 404;
     ctx.throw(e);
   }
+}
+
+function omitUndefines(data) {
+  return Object.entries(data)
+    .filter(([, value]) => typeof value !== 'undefined')
+    .reduce((acc, [k,v]) => (acc[k] = v, acc), {});
 }

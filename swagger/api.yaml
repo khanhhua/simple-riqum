@@ -188,6 +188,8 @@ paths:
     put:
       tags:
         - user
+      security:
+        - BasicAuth: []
       summary: Update one user identified by userID
       description: ''
       operationId: updateUser
@@ -204,7 +206,15 @@ paths:
           description: Created user object
           required: true
           schema:
-            $ref: '#/definitions/User'
+            type: object
+            properties:
+              email:
+                type: string
+              roles:
+                type: array
+                items:
+                  type: string
+
       responses:
         '200':
           description: successful operation
@@ -229,6 +239,68 @@ paths:
       responses:
         '204':
           description: User has been successfully removed
+        '400':
+          description: Invalid Request
+        '404':
+          description: User not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+
+  '/users/{userID}/quota':
+    get:
+      tags:
+      - user
+      security:
+      - BasicAuth: []
+      summary: Get one user identified by userID
+      description: ''
+      operationId: getUser
+      produces:
+      - application/json
+      parameters:
+      - name: userID
+        in: path
+        required: true
+        type: integer
+        format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Quota'
+        '400':
+          description: Invalid Request
+        '404':
+          description: User not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+    put:
+      tags:
+      - user
+      security:
+      - BasicAuth: []
+      summary: Update one user identified by userID
+      description: ''
+      operationId: updateUser
+      produces:
+      - application/json
+      parameters:
+      - name: userID
+        in: path
+        required: true
+        type: integer
+        format: int64
+      - in: body
+        name: body
+        description: New quota to update
+        required: true
+        schema:
+          $ref: '#/definitions/Quota'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Quota'
         '400':
           description: Invalid Request
         '404':
@@ -400,17 +472,24 @@ definitions:
         type: array
         items:
           type: string
-      quota:
-        type: object
-        properties:
-          limit:
-            type: integer
-          usage:
-            type: integer
-          unit:
-            type: string
+      quotum:
+        schema:
+          $ref: '#/definitions/Quota'
     xml:
       name: User
+  Quota:
+    type: object
+    required:
+      - limit
+      - unit
+    properties:
+      limit:
+        type: integer
+      usage:
+        type: integer
+      unit:
+        type: string
+
   Resource:
     type: object
     required:

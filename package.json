@@ -36,6 +36,7 @@
     "koa2-swagger-ui": "^2.9.5",
     "pg": "^7.4.3",
     "pg-hstore": "^2.3.2",
+    "pg-types": "^1.13.0",
     "sequelize": "^4.38.0",
     "swagger-koa": "^2.0.0",
     "swagger2-koa": "^1.0.1"
