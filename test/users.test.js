@@ -388,7 +388,6 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
   });
 
-
   describe('Delete users', () => {
     afterEach(() => {
       rewireAPI.__ResetDependency__('db');
@@ -441,6 +440,78 @@ describe('As a platform administrator, I should be able to create, list and dele
         .set('Authorization', `Bearer ${accessToken}`)
         .send()
         .expect(204);
+    });
+  });
+
+  describe('Update quota for user', () => {
+    afterEach(() => {
+      rewireAPI.__ResetDependency__('db');
+    });
+
+    it('must respond with 404 for an unknown user', async () => {
+      const updateUserQuotaById = chai.spy(() => Promise.reject(new Error('Not found')));
+
+      rewireAPI.__Rewire__('db', {
+        updateUserQuotaById
+      });
+
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      await supertest(app.callback())
+        .put('/api/v1/users/99999/quota')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          limit: 500,
+          unit: 'item'
+        })
+        .expect(404);
+
+      expect(updateUserQuotaById).to.have.been.called.with(99999, {
+        limit: 500,
+        unit: 'item'
+      });
+    });
+
+    it('must respond with 403 for an non-admin user', async () => {
+      const accessToken = genAccessToken({ id: 10, username: 'joe', roles: ['user'] }, privkey, passphrase);
+      await supertest(app.callback())
+        .put('/api/v1/users/10/quota')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          limit: 500,
+          unit: 'item'
+        })
+        .expect(403);
+    });
+
+    it('must update user quota', async () => {
+      const updateUserQuotaById = chai.spy((userId, { limit, unit }) => ({
+        limit,
+        unit
+      }));
+
+      rewireAPI.__Rewire__('db', {
+        updateUserQuotaById
+      });
+
+      const accessToken = genAccessToken(ADMIN, privkey, passphrase);
+      const res = await supertest(app.callback())
+        .put('/api/v1/users/10/quota')
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          limit: 500,
+          unit: 'item'
+        })
+        .expect(200);
+
+      expect(updateUserQuotaById).to.have.been.called.with(10, { limit: 500, unit: 'item' });
+      expect(res.body.limit).to.be.equal(500);
+      expect(res.body.unit).to.be.equal('item');
     });
   });
 });

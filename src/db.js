@@ -1,12 +1,27 @@
 import debug from 'debug';
-import { initDb as modelsInitDb, User, Resource } from './models';
+import {initDb as modelsInitDb, User, Resource, Quota} from './models';
 
 const dbg = debug('simple-riqum:db');
 
 export async function initDb() {
   dbg('Ensuring database schema is ready...');
 
-  return await modelsInitDb();
+  await modelsInitDb();
+
+  console.log('Initializing system initial data..');
+  await User.findOrCreate(
+    {
+      where: {username: 'admin'},
+      defaults: {
+        username: 'admin',
+        email: 'admin@localhost',
+        roles: ['admin', 'user'],
+        password: 'password'
+      }
+    });
+  console.log('- Added admin user')
+
+  return true;
 }
 
 /**
@@ -29,6 +44,9 @@ export async function createUser({ username, email, password, roles=['user'] }) 
 export async function findUserById(id) {
   dbg('Finding user by user id...');
   const user = await User.findOne({
+    include: [
+      { model: Quota }
+    ],
     attributes: { exclude: ['password'] },
     where: { id }
   });
@@ -104,8 +122,19 @@ export async function updateUserById(id, updateData) {
   return user.dataValues;
 }
 
-export async function updateUserQuotaById(id, quota) {
-  return;
+export async function updateUserQuotaById(id, { limit, unit }) {
+  const quota = await Quota.findOne({
+    where: { userId: id }
+  });
+
+  let updatedQuota;
+  if (quota) {
+    updatedQuota = await quota.update({ limit, unit });
+  } else {
+    updatedQuota = await Quota.create({ limit, unit, userId: id });
+  }
+
+  return updatedQuota;
 }
 
 export async function removeUserById(id) {

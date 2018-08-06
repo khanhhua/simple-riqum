@@ -14,6 +14,7 @@ export async function initDb() {
   await sequelize.authenticate();
   await User.sync();
   await Resource.sync();
+  await Quota.sync();
 
   return true;
 }
@@ -38,6 +39,11 @@ export const User = sequelize.define('user', {
   ]
 });
 
+export const Quota = sequelize.define('quota', {
+  limit: Sequelize.INTEGER,
+  unit: Sequelize.STRING(15)
+});
+
 export const Resource = sequelize.define('resource', {
   id: {
     primaryKey: true,
@@ -48,3 +54,5 @@ export const Resource = sequelize.define('resource', {
 });
 
 Resource.belongsTo(User, { as: 'owner' });
+Quota.belongsTo(User, { as: 'user' });
+User.hasOne(Quota);

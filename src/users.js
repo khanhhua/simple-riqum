@@ -28,6 +28,8 @@ export default function (app, baseUrl) {
   router.put('/users/:id', protect(adminOnlyRules), updateUser);
   router.delete('/users/:id', protect(adminOnlyRules), deleteUser);
 
+  router.put('/users/:id/quota', protect(adminOnlyRules), updateUserQuota);
+
   app.use(router.routes());
   app.use(router.allowedMethods());
 }
@@ -98,10 +100,10 @@ async function updateUser(ctx) {
 
 async function updateUserQuota(ctx) {
   const { id } = ctx.params;
-  const { body: { email, roles } } = ctx.request;
+  const { body: quota } = ctx.request;
 
   try {
-    const result = await db.updateUserQuotaById(parseInt(id, 10), { quota });
+    const result = await db.updateUserQuotaById(parseInt(id, 10), quota );
 
     ctx.body = result;
   } catch (e) {

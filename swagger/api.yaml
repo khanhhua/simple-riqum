@@ -188,6 +188,8 @@ paths:
     put:
       tags:
         - user
+      security:
+        - BasicAuth: []
       summary: Update one user identified by userID
       description: ''
       operationId: updateUser
@@ -265,8 +267,7 @@ paths:
         '200':
           description: successful operation
           schema:
-            type: integer
-            format: int64
+            $ref: '#/definitions/Quota'
         '400':
           description: Invalid Request
         '404':
@@ -276,6 +277,8 @@ paths:
     put:
       tags:
       - user
+      security:
+      - BasicAuth: []
       summary: Update one user identified by userID
       description: ''
       operationId: updateUser
@@ -292,14 +295,12 @@ paths:
         description: New quota to update
         required: true
         schema:
-          type: integer
-          format: int64
+          $ref: '#/definitions/Quota'
       responses:
         '200':
           description: successful operation
           schema:
-            type: integer
-            format: int64
+            $ref: '#/definitions/Quota'
         '400':
           description: Invalid Request
         '404':
@@ -471,17 +472,24 @@ definitions:
         type: array
         items:
           type: string
-      quota:
-        type: object
-        properties:
-          limit:
-            type: integer
-          usage:
-            type: integer
-          unit:
-            type: string
+      quotum:
+        schema:
+          $ref: '#/definitions/Quota'
     xml:
       name: User
+  Quota:
+    type: object
+    required:
+      - limit
+      - unit
+    properties:
+      limit:
+        type: integer
+      usage:
+        type: integer
+      unit:
+        type: string
+
   Resource:
     type: object
     required:
