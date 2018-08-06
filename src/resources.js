@@ -68,7 +68,14 @@ async function createResource(ctx) {
   const { body: { name } } = ctx.request;
   const { user: { id: userId } } = ctx;
 
-  const result = await db.createResource({ name, ownerId: userId });
+  const quota = await db.findQuotaByUserId(userId);
+  if (quota && quota.usage >= quota.limit) {
+    const error = new Error('Quota limit violation');
+    error.status = 429;
+    ctx.throw(error);
+  }
+
+  const result = await db.createResource({ name, ownerId: userId }, { quota });
 
   ctx.body = result;
   ctx.status = 201;
