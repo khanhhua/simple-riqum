@@ -217,7 +217,7 @@ export async function createResource({ name, ownerId }, { quota = null } = {}) {
 
     const resource = await Resource.create({ name, ownerId });
     const currentUsage = quota.usage;
-    const usage = quota.usage + 1;
+    const usage = currentUsage + 1;
     dbg(`Updating quota usage for owner=${ownerId}, old usage=${currentUsage}, new usage=${usage}`);
     await Quota.update({ usage }, { where: { userId: ownerId }});
 
@@ -256,6 +256,18 @@ export async function removeResourceById(resourceId, { ownerId = undefined } = {
 
   await resource.destroy();
 
+  const quota = await Quota.findOne({
+    raw: true,
+    where: {
+      userId: ownerId
+    }
+  });
+  if (quota && quota.usage > 1) {
+    const currentUsage = quota.usage;
+    const usage = currentUsage - 1;
+    dbg(`Updating quota usage for owner=${ownerId}, old usage=${currentUsage}, new usage=${usage}`);
+    await Quota.update({ usage }, { where: { userId: ownerId }});
+  }
   return true;
 }
 

@@ -83,7 +83,7 @@ async function createResource(ctx) {
   ctx.status = 201;
 }
 
-function updateResource(ctx, userId) {
+function updateResource(ctx) {
   ctx.body = {
     ok: true
   };
