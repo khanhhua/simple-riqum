@@ -57,7 +57,12 @@ export const Resource = sequelize.define('resource', {
     type: Sequelize.UUID,
     defaultValue: Sequelize.UUIDV4,
   },
-  name: Sequelize.STRING
+  name: Sequelize.STRING,
+  status: {
+    type: Sequelize.STRING,
+    defaultValue: 'requested' // requested | deploying | started
+  },
+  uri: Sequelize.STRING
 });
 
 Resource.belongsTo(User, { as: 'owner' });

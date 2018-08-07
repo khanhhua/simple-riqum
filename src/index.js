@@ -18,14 +18,10 @@ app.use(morgan('combined'));
 
 const dbg = debug('simple-riqum');
 
-
-
-initDb().then(() => {
-  dbg('Database configuration done');
-}).then(() => {
-  return makeChannel();
-}).then(() => {
-  dbg('AMQP configuration done');
+Promise.all([
+  initDb().then(() => { dbg('Database configuration done'); }),
+  makeChannel().then(() => { dbg('AMQP configuration done'); })
+]).then(() => {
   dbg('Initialization completed');
 
   app.listen(PORT, () => {

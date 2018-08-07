@@ -33,10 +33,15 @@ export async function deployResource({ id, name }) {
     throw new Error('AMQP Channel not ready. Did you call "makeChannel"???');
   }
 
-  await channel.publish({
+  dbg(`Publishing a task into queue ${DEPLOYER_TASK_Q}`);
+  const payload = Buffer.from(JSON.stringify({
     resource: { id, name },
     config: {
       platform: 'google-appengine'
     }
-  });
+  }));
+  await channel.publish('', DEPLOYER_TASK_Q, payload);
+  console.log(`Deployment for resource id=${id} has been enqueued`);
+
+  return true;
 }

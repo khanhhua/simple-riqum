@@ -1,6 +1,10 @@
 import debug from 'debug';
 import amqp from 'amqplib';
 import shell from 'shelljs';
+import Hashids from 'hashids';
+
+import { initDb } from '../db';
+import { Resource } from '../models';
 
 const dbg = debug('simple-riqum:qworker');
 
@@ -10,12 +14,15 @@ const AMQP_PASSWORD = process.env.AMQP_PASSWORD;
 const AMQP_URL = process.env.AMQP_URL || `amqp://${AMQP_USERNAME}:${AMQP_PASSWORD}@localhost/`;
 const DEPLOYER_TASK_Q = process.env.DEPLOYER_TASK_Q || 'deployments';
 
-const DEPLOYMENT_SCRIPTS_DIR='/Users/khanhhua/dev/simple-riqum/scripts';
+const DEPLOYMENT_SCRIPTS_DIR = process.env.DEPLOYMENT_SCRIPTS_DIR;
 
+const hashids = new Hashids();
 // If this is the main script....
 let channel;
 if (require.main === module) {
   amqp.connect(AMQP_URL).then(async (conn) => {
+    await initDb().then(() => { dbg('Database configuration done'); });
+
     dbg(`Establishing rabbit channel to ${AMQP_URL}`);
     channel = await conn.createChannel();
 
@@ -91,9 +98,21 @@ export async function deploy(payload) {
     [TAG] is the tag that identifies the version of the image in Container Registry. If you do not specify a tag, Container Registry will look for the default tag latest.
     Was this page helpful? Let us know how we did:
     */
-    // TODO Execute shell bash scripts
-    // bash: gcloud app deploy --image-url=[HOSTNAME]/[PROJECT-ID]/[IMAGE]:[TAG]
+
+    const { resource: { id: resourceId } } = payload;
+    const shortResourceId = hashids.encode(resourceId.replace(/[^\d]/g, '')).toLowerCase();
+
     shell.echo('Executing shell from working directory ' + process.cwd());
-    shell.exec(`${DEPLOYMENT_SCRIPTS_DIR}/gcloud-app-deploy.sh`);
+    shell.cd(DEPLOYMENT_SCRIPTS_DIR);
+    shell.exec(`bash gcloud-app-deploy.sh ${shortResourceId}`);
+
+    try {
+      await Resource.update({ status: 'started', uri: `https://${shortResourceId}-dot-simple-riqum.appspot.com` }, { where: { id: resourceId }});
+      console.log('Updated resource data')
+    } catch (e) {
+      dbg('Error during resource data update');
+      console.log(e.message);
+    }
+
   }
 }

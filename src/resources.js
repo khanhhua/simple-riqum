@@ -3,6 +3,7 @@ import debug from 'debug';
 import Router from 'koa-router';
 import { protect } from './auth';
 import * as db from './db';
+import { deployResource } from './resource-deployer';
 
 const dbg = debug('simple-riqum:users');
 
@@ -75,9 +76,10 @@ async function createResource(ctx) {
     ctx.throw(error);
   }
 
-  const result = await db.createResource({ name, ownerId: userId }, { quota });
+  const resource = await db.createResource({ name, ownerId: userId }, { quota });
+  await deployResource(resource);
 
-  ctx.body = result;
+  ctx.body = resource;
   ctx.status = 201;
 }
 
