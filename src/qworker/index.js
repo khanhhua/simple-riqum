@@ -9,24 +9,26 @@ const AMQP_PASSWORD = process.env.AMQP_PASSWORD;
 const AMQP_URL = process.env.AMQP_URL || `amqp://${AMQP_USERNAME}:${AMQP_PASSWORD}@localhost/`;
 const DEPLOYER_TASK_Q = process.env.DEPLOYER_TASK_Q || 'deployments';
 
+// If this is the main script....
 let channel;
+if (require.main === module) {
+  amqp.connect(AMQP_URL).then(async (conn) => {
+    dbg(`Establishing rabbit channel to ${AMQP_URL}`);
+    channel = await conn.createChannel();
 
-amqp.connect(AMQP_URL).then(async (conn) => {
-  dbg(`Establishing rabbit channel to ${AMQP_URL}`);
-  channel = await conn.createChannel();
+    const result = await channel.assertQueue(DEPLOYER_TASK_Q);
+    if (!result || result.queue !== DEPLOYER_TASK_Q) {
+      dbg('Could not establish queue. Exiting...');
+      return;
+    }
 
-  const result = await channel.assertQueue(DEPLOYER_TASK_Q);
-  if (!result || result.queue !== DEPLOYER_TASK_Q) {
-    dbg('Could not establish queue. Exiting...');
-    return;
-  }
+    console.log('Queue has been established. Consuming...');
 
-  console.log('Queue has been established. Consuming...');
+    channel.consume(DEPLOYER_TASK_Q, consumer, { noAck: false });
+  });
+}
 
-  channel.consume(DEPLOYER_TASK_Q, consumer, { noAck: false });
-});
-
-async function consumer(msg) {
+export async function consumer(msg) {
   if (!channel) {
     throw new Error('Channel not ready');
   }
@@ -54,10 +56,17 @@ async function consumer(msg) {
   }
 }
 
-async function deploy(payload) {
+export async function deploy(payload) {
+  if (!('resource' in payload)) {
+    throw new Error('Bad deployment payload. Missing "resource"');
+  }
+  if (!('config' in payload)) {
+    throw new Error('Bad deployment payload. Missing "config"');
+  }
+
   return new Promise(resolve => {
     dbg('Deploying payload', payload);
 
-    setTimeout(resolve, 4000);
+    setTimeout(resolve, 1000);
   });
 }
