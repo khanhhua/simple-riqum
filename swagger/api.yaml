@@ -252,7 +252,7 @@ paths:
       - user
       security:
       - BasicAuth: []
-      summary: Get one user identified by userID
+      summary: Update quota for user identified by userID
       description: ''
       operationId: getUser
       produces:

@@ -10,6 +10,9 @@ const DATABASE_URL  = process.env.DATABASE_URL;
 
 const sequelize = new Sequelize(DATABASE_URL);
 
+// TODO apply transaction
+export const transaction = sequelize.transaction.bind(sequelize);
+
 export async function initDb() {
   await sequelize.authenticate();
   await User.sync();
@@ -41,6 +44,10 @@ export const User = sequelize.define('user', {
 
 export const Quota = sequelize.define('quota', {
   limit: Sequelize.INTEGER,
+  usage: {
+    type: Sequelize.INTEGER,
+    defaultValue: 0
+  },
   unit: Sequelize.STRING(15)
 });
 
@@ -50,7 +57,12 @@ export const Resource = sequelize.define('resource', {
     type: Sequelize.UUID,
     defaultValue: Sequelize.UUIDV4,
   },
-  name: Sequelize.STRING
+  name: Sequelize.STRING,
+  status: {
+    type: Sequelize.STRING,
+    defaultValue: 'requested' // requested | deploying | started
+  },
+  uri: Sequelize.STRING
 });
 
 Resource.belongsTo(User, { as: 'owner' });

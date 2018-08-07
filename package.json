@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "BABEL_DISABLE_CACHE=1 babel-node src/index.js",
+    "qworker": "BABEL_DISABLE_CACHE=1 babel-node src/qworker/index.js",
     "debug": "BABEL_DISABLE_CACHE=1 DEBUG=simple-riqum* babel-node --inspect=9229 src/index.js",
+    "qworker:debug": "BABEL_DISABLE_CACHE=1 DEBUG=simple-riqum* babel-node src/qworker/index.js",
     "test": "BABEL_DISABLE_CACHE=1 mocha --require babel-core/register './test/{,!(node_modules)/**/}*.test.js'",
     "test:unit": "BABEL_DISABLE_CACHE=1 mocha --require babel-core/register './src/{,!(node_modules)/**/}*.spec.js'"
   },
@@ -25,7 +27,9 @@
   },
   "homepage": "https://github.com/khanhhua/simple-riqum#readme",
   "dependencies": {
+    "amqplib": "^0.5.2",
     "debug": "^3.1.0",
+    "hashids": "^1.1.4",
     "jsonwebtoken": "^8.3.0",
     "koa": "^2.5.2",
     "koa-body": "^4.0.4",
@@ -38,6 +42,7 @@
     "pg-hstore": "^2.3.2",
     "pg-types": "^1.13.0",
     "sequelize": "^4.38.0",
+    "shelljs": "^0.8.2",
     "swagger-koa": "^2.0.0",
     "swagger2-koa": "^1.0.1"
   },

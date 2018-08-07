@@ -3,6 +3,7 @@ import debug from 'debug';
 import Router from 'koa-router';
 import { protect } from './auth';
 import * as db from './db';
+import { deployResource } from './resource-deployer';
 
 const dbg = debug('simple-riqum:users');
 
@@ -68,9 +69,17 @@ async function createResource(ctx) {
   const { body: { name } } = ctx.request;
   const { user: { id: userId } } = ctx;
 
-  const result = await db.createResource({ name, ownerId: userId });
+  const quota = await db.findQuotaByUserId(userId);
+  if (quota && quota.usage >= quota.limit) {
+    const error = new Error('Quota limit violation');
+    error.status = 429;
+    ctx.throw(error);
+  }
 
-  ctx.body = result;
+  const resource = await db.createResource({ name, ownerId: userId }, { quota });
+  await deployResource(resource);
+
+  ctx.body = resource;
   ctx.status = 201;
 }
 

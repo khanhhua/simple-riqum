@@ -63,7 +63,9 @@ describe('As a platform user, I should be able to create, list and delete my res
     });
 
     it('must persist valid resource', async () => {
+      rewireAPI.__Rewire__('deployResource', () => Promise.resolve(true));
       rewireAPI.__Rewire__('db', {
+        async findQuotaByUserId(id) { return null },
         async createResource ({ name, ownerId }) {
           expect(name).to.be.equal('avatar');
           expect(ownerId).to.be.equal(10);
@@ -376,7 +378,9 @@ describe('As a platform administrator, I should be able to create, list and dele
     });
 
     it('must persist valid resource', async () => {
+      rewireAPI.__Rewire__('deployResource', () => Promise.resolve(true));
       rewireAPI.__Rewire__('db', {
+        async findQuotaByUserId(id) { return null },
         async createResource ({ name, ownerId }) {
           expect(name).to.be.equal('avatar');
           expect(ownerId).to.be.equal(1);

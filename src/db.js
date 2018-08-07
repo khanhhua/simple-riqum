@@ -1,5 +1,5 @@
 import debug from 'debug';
-import {initDb as modelsInitDb, User, Resource, Quota} from './models';
+import {initDb as modelsInitDb, transaction as sqlTransaction, User, Resource, Quota} from './models';
 
 const dbg = debug('simple-riqum:db');
 
@@ -150,6 +150,20 @@ export async function removeUserById(id) {
   return true;
 }
 
+/**
+ *
+ * @param userId
+ * @returns {Promise<Quota>} Quota can be null, which means there's no limit for this user
+ */
+export async function findQuotaByUserId(userId) {
+  const quota = await Quota.findOne({
+    raw: true,
+    where: { userId }
+  });
+
+  return quota;
+}
+
 export async function findResourcesByOwnerId(ownerId, { limit = 10, offset = 0 } = {}) {
   dbg(`Finding resources by user id: ${ownerId}`);
 
@@ -195,12 +209,38 @@ export async function findResourceById(resourceID, { ownerId = undefined } = {})
   return isolify(resource);
 }
 
-export async function createResource({ name, ownerId }) {
+export async function createResource({ name, ownerId }, { quota = null } = {}) {
   dbg(`Creating new resource with for owner=${ownerId}`);
 
-  const resource = await Resource.create({ name, ownerId });
+  if (quota && quota.unit === 'item') {
+    dbg('Starting transaction...');
 
-  return resource.dataValues;
+    const resource = await Resource.create({ name, ownerId });
+    const currentUsage = quota.usage;
+    const usage = quota.usage + 1;
+    dbg(`Updating quota usage for owner=${ownerId}, old usage=${currentUsage}, new usage=${usage}`);
+    await Quota.update({ usage }, { where: { userId: ownerId }});
+
+    // TODO Apply transaction
+    // const resource = await sqlTransaction(async tx => {
+    //   const resource = await Resource.create({ name, ownerId });
+    //   const currentUsage = quota.usage;
+    //   const usage = quota.usage + 1;
+    //
+    //   dbg(`Updating quota usage for owner=${ownerId}, old usage=${currentUsage}, new usage=${usage}`);
+    //   await Quota.update({ usage }, { where: { userId: ownerId }});
+    //   await tx.commit();
+    //   dbg('Transaction committed');
+    //
+    //   return resource;
+    // });
+
+    return resource.dataValues;
+  } else {
+    const resource = await Resource.create({ name, ownerId });
+
+    return resource.dataValues;
+  }
 }
 
 export async function removeResourceById(resourceId, { ownerId = undefined } = {}) {
