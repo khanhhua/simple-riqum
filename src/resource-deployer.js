@@ -33,5 +33,10 @@ export async function deployResource({ id, name }) {
     throw new Error('AMQP Channel not ready. Did you call "makeChannel"???');
   }
 
-
+  await channel.publish({
+    resource: { id, name },
+    config: {
+      platform: 'google-appengine'
+    }
+  });
 }

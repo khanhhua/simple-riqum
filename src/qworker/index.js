@@ -1,5 +1,6 @@
 import debug from 'debug';
 import amqp from 'amqplib';
+import shell from 'shelljs';
 
 const dbg = debug('simple-riqum:qworker');
 
@@ -8,6 +9,8 @@ const AMQP_PASSWORD = process.env.AMQP_PASSWORD;
 
 const AMQP_URL = process.env.AMQP_URL || `amqp://${AMQP_USERNAME}:${AMQP_PASSWORD}@localhost/`;
 const DEPLOYER_TASK_Q = process.env.DEPLOYER_TASK_Q || 'deployments';
+
+const DEPLOYMENT_SCRIPTS_DIR='/Users/khanhhua/dev/simple-riqum/scripts';
 
 // If this is the main script....
 let channel;
@@ -64,9 +67,33 @@ export async function deploy(payload) {
     throw new Error('Bad deployment payload. Missing "config"');
   }
 
-  return new Promise(resolve => {
-    dbg('Deploying payload', payload);
+  if (payload.config.platform === 'google-appengine') {
+    // Refer to Google Cloud API documentation
+    // https://cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.zones.clusters/create
 
-    setTimeout(resolve, 1000);
-  });
+    // Refer to Google Cloud API documentation
+    /*
+    App Engine Flexible Environment
+    Deploying to App Engine
+
+    You can deploy an image hosted by Container Registry to App Engine using the gcloud command-line tool.
+
+    You can use the gcloud beta app gen-config command in your image's root directory to automatically create the app.yaml file needed to deploy to App Engine. Alternatively, you can write the file yourself.
+
+    Once you have created the App Engine configuration file, built your Docker image, and pushed your image to Container Registry , you can deploy your image to App Engine by running the following command:
+
+    gcloud app deploy --image-url=[HOSTNAME]/[PROJECT-ID]/[IMAGE]:[TAG]
+    where:
+
+    [HOSTNAME] is listed under Location in the console. It's one of four options: gcr.io, us.gcr.io, eu.gcr.io, or asia.gcr.io.
+    [PROJECT-ID] is your Google Cloud Platform Console project ID. See Domain-scoped projects for how to work with projects IDs that include a domain.
+    [IMAGE] is the image's name in Container Registry.
+    [TAG] is the tag that identifies the version of the image in Container Registry. If you do not specify a tag, Container Registry will look for the default tag latest.
+    Was this page helpful? Let us know how we did:
+    */
+    // TODO Execute shell bash scripts
+    // bash: gcloud app deploy --image-url=[HOSTNAME]/[PROJECT-ID]/[IMAGE]:[TAG]
+    shell.echo('Executing shell from working directory ' + process.cwd());
+    shell.exec(`${DEPLOYMENT_SCRIPTS_DIR}/gcloud-app-deploy.sh`);
+  }
 }

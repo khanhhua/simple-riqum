@@ -41,6 +41,7 @@
     "pg-hstore": "^2.3.2",
     "pg-types": "^1.13.0",
     "sequelize": "^4.38.0",
+    "shelljs": "^0.8.2",
     "swagger-koa": "^2.0.0",
     "swagger2-koa": "^1.0.1"
   },
