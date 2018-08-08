@@ -13,7 +13,14 @@ let channel;
 
 export async function makeChannel() {
   dbg('Establishing rabbit channel...');
+
+  const t = setTimeout(() => {
+    throw new Error("Connection timeout");
+  }, 5000);
+
   channel = await amqp.connect(AMQP_URL).then(conn => {
+    if (t) clearTimeout(t);
+
     return conn.createChannel();
   });
 

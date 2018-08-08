@@ -6,7 +6,7 @@ import { __RewireAPI__ as rewireAPI } from './index';
 
 chai.use(spies);
 
-describe('QWOrker', () => {
+describe('QWorker', () => {
   it('must have a nice interface', () => {
     expect(qworker.consumer).to.be.a('function');
     expect(qworker.deploy).to.be.a('function');

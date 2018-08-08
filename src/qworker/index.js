@@ -20,6 +20,8 @@ const hashids = new Hashids();
 // If this is the main script....
 let channel;
 if (require.main === module) {
+  Object.entries(process.env).forEach(([k, v]) => k.toUpperCase()===k && dbg(`${k}=${v}`));
+
   amqp.connect(AMQP_URL).then(async (conn) => {
     await initDb().then(() => { dbg('Database configuration done'); });
 

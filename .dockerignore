@@ -1,0 +1,8 @@
+.dockerignore
+.editorconfig
+.env*
+.travis.yml
+
+test
+node_modules
+scripts/service-keyfile.json

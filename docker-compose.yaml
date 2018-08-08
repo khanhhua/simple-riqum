@@ -1,18 +1,6 @@
 version: '3.6'
 services:
-  database:
-    image: postgres:9.6.9
-    hostname: postgres
-    container_name: simple-riqum-database
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_PASSWORD=adminadmin
-      - POSTGRES_DB=riqum
-    volumes:
-      - ./data/db:/var/lib/postgresql/data
-
-  rabbit:
+  rabbitmq:
     image: rabbitmq:3-management
     hostname: rabbitmq
     container_name: simple-riqum-rabbitmq
@@ -25,3 +13,57 @@ services:
       - RABBITMQ_DEFAULT_VHOST=/
     volumes:
       - ./data/rabbits:/var/lib/rabbitmq/mnesia/rabbit@my-rabbit
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  postgres:
+    image: postgres:9.6.9
+    hostname: postgres
+    container_name: simple-riqum-database
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=adminadmin
+      - POSTGRES_DB=riqum
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+
+  simple-riqum-web:
+    build:
+      dockerfile: Dockerfile-web
+      context: .
+    restart: always
+
+    ports:
+      - 8080:8080
+    links:
+      - rabbitmq
+      - postgres
+    depends_on:
+      - rabbitmq
+      - postgres
+    env_file:
+      - .env.docker
+    volumes:
+      - ./data:/data
+
+  simple-riqum-worker:
+    build:
+      dockerfile: Dockerfile-worker
+      context: .
+    restart: always
+
+    links:
+      - rabbitmq
+      - postgres
+    depends_on:
+      - rabbitmq
+      - postgres
+    env_file:
+      - .env.docker
+    volumes:
+      - ./scripts/service-keyfile.json:/scripts/service-keyfile.json
