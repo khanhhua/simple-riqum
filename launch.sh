@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 if [ ! -f ./service-keyfile.json ]; then
-    echo "Please ensure that file 'service-keyfile.json' exists in ./scripts directory. See README.md"
+    echo "!!! Please ensure that file 'service-keyfile.json' exists in ./scripts directory. See README.md"
+    exit 1
 fi
 
 mkdir -p data
