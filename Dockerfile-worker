@@ -1,4 +1,4 @@
-FROM node:slim
+FROM google/cloud-sdk:latest
 
 ENV NODE_ENV=development \
     DATABASE_URL= \
@@ -6,6 +6,9 @@ ENV NODE_ENV=development \
     AMQP_PASSWORD=password \
     DEPLOYMENT_SCRIPTS_DIR=/scripts \
     DEBUG=simple-riqum*
+
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash
+RUN apt-get install -y nodejs && echo node -v
 
 COPY . .
 RUN npm install

@@ -12,5 +12,15 @@
     "transform-object-rest-spread",
     "transform-async-to-generator",
     "inline-dotenv"
-  ]
+  ],
+  "env": {
+    "test": {
+      "plugins": [ "istanbul", {
+        "exclude": [
+          "**/*.spec.js",
+          "**/*.test.js"
+        ]
+      }]
+    }
+  }
 }

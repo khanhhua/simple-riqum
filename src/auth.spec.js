@@ -26,8 +26,15 @@ describe('auth module', () => {
       const actual = auth.protect();
       expect(actual).to.be.a('function');
 
-      const result = actual();
-      expect(result).to.be.a('promise');
+      try {
+        const result = actual({
+          throw: () => {
+            throw new Error('mock');
+          }
+        });
+        expect(result).to.be.a('promise');
+        result.then(() => {}, () => {})
+      } finally {}
     });
 
     describe('Resource protection rules', () => {

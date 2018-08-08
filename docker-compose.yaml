@@ -50,20 +50,20 @@ services:
       - .env.docker
     volumes:
       - ./data:/data
-#
-#  simple-riqum-worker:
-#    build:
-#      dockerfile: Dockerfile-worker
-#      context: .
-#    restart: always
-#
-#    links:
-#      - rabbitmq
-#      - postgres
-#    depends_on:
-#      - rabbitmq
-#      - postgres
-#    env_file:
-#      - .env.docker
-#    volumes:
-#      - ./scripts/service-keyfile.json:/scripts/service-keyfile.json
+
+  simple-riqum-worker:
+    build:
+      dockerfile: Dockerfile-worker
+      context: .
+    restart: always
+
+    links:
+      - rabbitmq
+      - postgres
+    depends_on:
+      - rabbitmq
+      - postgres
+    env_file:
+      - .env.docker
+    volumes:
+      - ./scripts/service-keyfile.json:/scripts/service-keyfile.json
