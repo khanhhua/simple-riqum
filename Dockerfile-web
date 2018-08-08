@@ -1,0 +1,18 @@
+FROM node:slim
+
+ENV NODE_ENV=development \
+    JWT_PASS=passphrase \
+    JWT_PRIVATE_KEY=/data/privkey.pem \
+    JWT_PUBLIC_KEY=/data/pubkey.pem \
+    DATABASE_URL= \
+    AMQP_URL= \
+    AMQP_USERNAME=rabbit \
+    AMQP_PASSWORD=password \
+    DEBUG=simple-riqum*
+
+COPY . .
+RUN npm install
+
+EXPOSE 8080
+
+CMD ["./node_modules/.bin/babel-node", "src/index.js"]

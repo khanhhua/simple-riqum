@@ -1,5 +1,4 @@
 import debug from 'debug';
-import Koa from 'koa';
 import morgan from 'koa-morgan';
 // Swagger documentation
 import * as swagger from 'swagger2';
@@ -17,6 +16,7 @@ app.use(ui(document, "/swagger"));
 app.use(morgan('combined'));
 
 const dbg = debug('simple-riqum');
+Object.entries(process.env).forEach(([k, v]) => k.toUpperCase()===k && dbg(`${k}=${v}`));
 
 Promise.all([
   initDb().then(() => { dbg('Database configuration done'); }),
@@ -28,4 +28,6 @@ Promise.all([
     dbg(`Node environment: ${process.env.NODE_ENV}`);
     dbg(`Listening on port ${PORT}...`);
   });
+}).catch(() => {
+  process.exit(1);
 });
