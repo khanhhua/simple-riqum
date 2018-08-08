@@ -371,6 +371,7 @@ paths:
     get:
       tags:
         - resource
+      summary: Get the details of one resource
       security:
         - BasicAuth: []
       parameters:
@@ -389,26 +390,10 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/ApiResponse'
-    put:
-      tags:
-        - resource
-      security:
-        - BasicAuth: []
-      parameters:
-        - in: path
-          name: resourceId
-          type: string
-          required: true
-      responses:
-        '200':
-          description: successful operation
-          schema:
-            $ref: '#/definitions/Resource'
-        '400':
-          description: Invalid input resourceId
     delete:
       tags:
         - resource
+      summary: Delete one resource
       security:
         - BasicAuth: []
       parameters:
