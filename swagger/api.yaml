@@ -29,7 +29,7 @@ paths:
       tags:
         - auth
       summary: Authenticate user
-      description: ''
+      description:
       operationId: login
       consumes:
         - application/json
@@ -38,7 +38,15 @@ paths:
       parameters:
         - in: body
           name: body
-          description: Login credential
+          description: |
+            *Login credential*
+            Example value
+            ```
+            {
+              "email": "admin@mail.com",
+              "password": "password"
+            }
+            ```
           required: true
           schema:
             $ref: '#/definitions/BasicCredential'
@@ -80,7 +88,19 @@ paths:
       parameters:
         - in: body
           name: body
-          description: Created user object
+          description: |
+
+            Example value
+            ```
+            {
+              "username": "johndoe",
+              "email": "johndoe@mail.com",
+              "password": "password",
+              "roles": [
+                "user"
+              ]
+            }
+            ```
           required: true
           schema:
             $ref: '#/definitions/User'
@@ -203,7 +223,21 @@ paths:
           format: int64
         - in: body
           name: body
-          description: Created user object
+          description: |
+            *Updated user object*
+
+            Example value
+
+            ```
+            {
+              "email": "johndoe@mail.com",
+              "roles": [
+                "user"
+              ]
+            }
+            ```
+            Please note that it's designed to update only user's email and roles
+
           required: true
           schema:
             type: object
@@ -292,7 +326,18 @@ paths:
         format: int64
       - in: body
         name: body
-        description: New quota to update
+        description: |
+          # New quota to update
+
+          ## Example value
+          ```
+          {
+            "limit": 3,
+            "unit": "item"
+          }
+          ```
+          Only "item" is handled at the moment
+
         required: true
         schema:
           $ref: '#/definitions/Quota'
@@ -318,7 +363,13 @@ paths:
       parameters:
       - in: body
         name: body
-        description: Created resource object
+        description: |
+          # Created resource object
+
+          # Example value
+          ```
+          { "name": "Service 1" }
+          ```
         required: true
         schema:
           $ref: '#/definitions/Resource'
@@ -377,6 +428,7 @@ paths:
       parameters:
         - in: path
           name: resourceId
+          description: UUIDv4 of the resource
           type: string
           required: true
       responses:
@@ -410,16 +462,6 @@ paths:
 securityDefinitions:
   BasicAuth:
     type: basic
-  OAuth2:
-    type: oauth2
-    flow: accessCode
-    authorizationUrl: 'https://riqum.khanhhua.com/oauth/authorize'
-    tokenUrl: 'https://riqum.khanhhua.com/oauth/token'
-    scopes:
-      user: Grants read/write to his own resources
-      admin: >-
-        Grants read and write access to administrative information (user, grant
-        to users)
 
 definitions:
   BasicCredential:
@@ -457,6 +499,7 @@ definitions:
         type: array
         items:
           type: string
+          enum: [admin, user]
       quotum:
         schema:
           $ref: '#/definitions/Quota'
